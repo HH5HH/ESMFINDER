@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get ESM V3</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    label, input, textarea {
+      display: block;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+    textarea {
+      height: 100px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #response {
+      margin-top: 20px;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Process Software Statement</h1>
+  <form id="softwareForm">
+    <label for="softwareStatement">Enter Software Statement:</label>
+    <textarea id="softwareStatement" name="softwareStatement" required></textarea>
+    
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="response"></div>
+
+  <script>
+    document.getElementById('softwareForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); // Prevent form from refreshing the page
+      
+      const softwareStatement = document.getElementById('softwareStatement').value;
+      const responseDiv = document.getElementById('response');
+      responseDiv.innerHTML = 'Processing...'; // Clear any previous responses and show loading message
+
+      try {
+        // First AJAX POST request
+        const response1 = await fetch('https://sp.auth.adobe.com/o/client/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ "software_statement" : softwareStatement })
+        });
+        const data1 = await response1.json();
+
+// TODO : sanitize this approach, plus add error handling
+let clientId = data1.client_id;
+let clientSecret = data1.client_secret;
+console.log( clientId + " : " + clientSecret );
+        // Display responses
+        responseDiv.innerHTML = `
+          <h3>Results</h3>
+          <p><strong>Response 1:</strong> ${JSON.stringify(data1)}</p>
+        `;
+
+        // Second AJAX POST request
+        const response2 = await fetch('https://sp.auth.adobe.com/o/client/token?grant_type=client_credentials&client_id='+clientId+'&client_secret='+clientSecret, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        const data2 = await response2.json();
+// TODO : sanitize this approach, plus add error handling
+let accessToken = data2.access_token;
+let termCmd = 'curl -X GET -H "Authorization: Bearer '+accessToken+'" "https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day"';
+console.log( accessToken );
+console.log( termCmd );
+
+        // Display responses
+        responseDiv.innerHTML += `
+          <p><strong>Response 2:</strong> ${JSON.stringify(data2)}</p>
+          <p><strong>SEND to TERMINAL:</strong> ${termCmd}</p>
+        `;
+
+
+        // const esm_url = 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day';
+        const esm_url = 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day.json';
+
+        // const wf_url = "https://hook.fusion.adobe.com/ckqagpptl154dnz10m1wix1afgp823ll";
+        // const wf_params = {
+        //   auth: "Bearer "+accessToken,
+        //   esmurl: esm_url
+        // };
+
+
+
+        const response3 = await fetch( esm_url, {
+                            method: 'GET', // Specify the HTTP method
+                            mode: 'cors',
+                            headers: {
+                              'Access-Control-Allow-Credentials': true,
+                              'credentials': 'include',
+                              'Access-Control-Allow-Origin': 'http://localhost/',
+                              'Content-Type': 'application/json',
+                              'Authorization': 'Bearer '+accessToken,
+                            }
+                          });
+
+        const data3 = await response3.json();
+// method: 'POST',
+        // Display responses
+        responseDiv.innerHTML += `
+          <p><strong>Response 3:</strong> ${JSON.stringify(data3)}</p>
+        `;
+
+
+
+
+
+
+
+      } catch (error) {
+        responseDiv.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+      }
+    });
+  </script>
+
+</body>
+</html>

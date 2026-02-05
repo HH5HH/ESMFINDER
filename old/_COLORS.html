@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Scheme Previewer</title>
+  <style>a:hover{color:royalblue}.zmMIN{color:darkred;} .zmHR{color:darkorange;} .zmDAY{color:darkgoldenrod;} .zmMO{color:darkcyan;} .zmYR{color:navy;} body{font-family:Arial,sans-serif;margin:20px}dl{background-color:#f9f9f9;padding:15px;border-radius:5px}dt{font-weight:700;margin-top:10px}dd{margin-left:20px;margin-bottom:10px}.highlight{background-color:#ff0}.parent-highlight{background-color:#d3f0d3}.hidden{display:none}.search-container{margin:20px 0}input{width:300px;padding:10px;font-size:16px}select{width:100px;padding:10px;font-size:16px}button{padding:10px 20px;font-size:16px;cursor:pointer}.reset-button{background-color:#f44336;color:#fff}</style>
+</head>
+<body>
+  <h1>Color Scheme Previewer</h1>
+  <label for="profession-select">Choose a profession:</label>
+  <select id="profession-select">
+    <option value="">--Select a Profession--</option>
+    <option value="emergencyDispatcher">Emergency Dispatcher</option>
+    <option value="surgeon">Surgeon</option>
+    <option value="financialTrader">Financial Trader</option>
+    <option value="controlRoomOperator">Control Room Operator</option>
+    <option value="military">Military Personnel in Command and Control</option>
+    <option value="healthcare">Healthcare Triage Nurse or Flight Nurse</option>
+    <option value="pilot">Airline Pilot</option>
+    <option value="broadcastProducer">Film/Television Live Broadcast Producer</option>
+    <option value="firefighter">Firefighter</option>
+    <option value="eventCoordinator">Event Coordinator or Stage Manager</option>
+  </select>
+
+  <!-- <div class="preview">
+    <p>Year: <span class="zmYR">2024</span></p>
+    <p>Month: <span class="zmMO">November</span></p>
+    <p>Day: <span class="zmDAY">25</span></p>
+    <p>Hour: <span class="zmHR">11</span></p>
+    <p>Minute: <span class="zmMIN">59</span></p>
+  </div> -->
+
+
+
+
+
+  <dl>
+    <dt><a href='https://mgmt.auth.adobe.com/esm/v2.1/media-company/year' target='_blank' class='zmYR'>https://mgmt.auth.adobe.com/esm/v2.1/media-company/year</a></dt>
+    <dd>authn-attempts
+    authn-pending
+    authn-successful
+    authz-attempts
+    authz-failed
+    authz-latency
+    authz-rejected
+    authz-successful
+    clientless-failures
+    clientless-tokens
+    media-company
+    media-tokens
+    year</dd>
+    </dl>
+    <dl>
+    <dt><a href='https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month' target='_blank' class='zmMO'>https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month</a></dt>
+    <dd>authn-attempts
+    authn-pending
+    authn-successful
+    authz-attempts
+    authz-failed
+    authz-latency
+    authz-rejected
+    authz-successful
+    clientless-failures
+    clientless-tokens
+    media-company
+    media-tokens
+    month
+    year</dd>
+    </dl>
+    <dl>
+        <dt><a href='https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day/hour/minute' target='_blank' class='zmMIN'>https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day/hour/minute</a></dt>
+        <dd>authn-attempts
+        authn-pending
+        authn-successful
+        authz-attempts
+        authz-failed
+        authz-latency
+        authz-rejected
+        authz-successful
+        day
+        hour
+        media-company
+        minute
+        month
+        year</dd>
+        </dl>
+        <dl>
+        <dt><a href='https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day/hour/minute/event' target='_blank' class='zmMIN'>https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day/hour/minute/event</a></dt>
+        <dd>count
+        day
+        event
+        hour
+        media-company
+        minute
+        month
+        year</dd>
+        </dl>
+        <dl>
+        <dt><a href='https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day/hour/minute/event/requestor-id' target='_blank' class='zmMIN'>https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day/hour/minute/event/requestor-id</a></dt>
+        <dd>count
+        day
+        event
+        hour
+        media-company
+        minute
+        month
+        requestor-id
+        year</dd>
+        </dl>
+    <dl>
+    <dt><a href='https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day' target='_blank' class='zmDAY'>https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day</a></dt>
+    <dd>authn-attempts
+    authn-pending
+    authn-successful
+    authz-attempts
+    authz-failed
+    authz-latency
+    authz-rejected
+    authz-successful
+    clientless-failures
+    clientless-tokens
+    day
+    media-company
+    media-tokens
+    month
+    year</dd>
+    </dl>
+    <dl>
+    <dt><a href='https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day/dc' target='_blank' class='zmDAY'>https://mgmt.auth.adobe.com/esm/v2.1/media-company/year/month/day/dc</a></dt>
+    <dd>authn-attempts
+    authn-pending
+    authn-successful
+    authz-attempts
+    authz-failed
+    authz-latency
+    authz-rejected
+    authz-successful
+    clientless-failures
+    clientless-tokens
+    day
+    dc
+    media-company
+    media-tokens
+    month
+    unique-accounts
+    unique-sessions
+    year</dd>
+    </dl>
+    <dl>
+
+
+
+        
+
+
+  <script>
+    const styleBlocks = {
+      emergencyDispatcher: `
+        body { background-color: #24476d; color: #ffe066; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #ff8800; }
+        .zmDAY { color: #ffcc00; }
+        .zmMO { color: #0057b7; }
+        .zmYR { color: #001f4d; }
+      `,
+      surgeon: `
+        body { background-color: #669999; color: #ffffff; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #ffd700; }
+        .zmDAY { color: #0073e6; }
+        .zmMO { color: #008080; }
+        .zmYR { color: #ffffff; }
+      `,
+      financialTrader: `
+        body { background-color: #669966; color: #ffffff; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #ffcc00; }
+        .zmDAY { color: #008000; }
+        .zmMO { color: #c0c0c0; }
+        .zmYR { color: #333333; }
+      `,
+      controlRoomOperator: `
+        body { background-color: #5a91d8; color: #ff7040; } /* Toned-down complementary */
+        .zmMIN { color: #ff4500; }
+        .zmHR { color: #ff8c00; }
+        .zmDAY { color: #ffd700; }
+        .zmMO { color: #1e90ff; }
+        .zmYR { color: #006400; }
+      `,
+      military: `
+        body { background-color: #8c9b6b; color: #ffe066; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #b22222; }
+        .zmDAY { color: #fcd116; }
+        .zmMO { color: #808080; }
+        .zmYR { color: #556b2f; }
+      `,
+      healthcare: `
+        body { background-color: #ffc480; color: #000066; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #ffa500; }
+        .zmDAY { color: #ffff66; }
+        .zmMO { color: #98fb98; }
+        .zmYR { color: #ffffff; }
+      `,
+      pilot: `
+        body { background-color: #4d4d99; color: #ffe066; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #ff8c00; }
+        .zmDAY { color: #ffd700; }
+        .zmMO { color: #87ceeb; }
+        .zmYR { color: #000080; }
+      `,
+      broadcastProducer: `
+        body { background-color: #ffd84d; color: #22314d; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #ff0000; }
+        .zmDAY { color: #ffdd00; }
+        .zmMO { color: #c0c0c0; }
+        .zmYR { color: #000000; }
+      `,
+      firefighter: `
+        body { background-color: #a63d3d; color: #ffff99; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #ff0000; }
+        .zmDAY { color: #ffcc00; }
+        .zmMO { color: #ff4500; }
+        .zmYR { color: #8b0000; }
+      `,
+      eventCoordinator: `
+        body { background-color: #fff2b3; color: #000000; } /* Toned-down complementary */
+        .zmMIN { color: #ff0000; }
+        .zmHR { color: #ff0000; }
+        .zmDAY { color: #f5e050; }
+        .zmMO { color: #c0c0c0; }
+        .zmYR { color: #000000; }
+      `
+    };
+
+    const professionSelect = document.getElementById('profession-select');
+    const previewDiv = document.querySelector('.preview');
+
+    professionSelect.addEventListener('change', () => {
+      const selectedStyle = styleBlocks[professionSelect.value];
+      if (selectedStyle) {
+        let styleTag = document.getElementById('dynamic-style');
+        if (!styleTag) {
+          styleTag = document.createElement('style');
+          styleTag.id = 'dynamic-style';
+          document.head.appendChild(styleTag);
+        }
+        styleTag.innerHTML = selectedStyle;
+      }
+    });
+  </script>
+</body>
+</html>

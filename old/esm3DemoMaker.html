@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESM3 Demo Maker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f9f9f9;
+            overflow: hidden;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            min-height: 420px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-grow: 1;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="radio"] {
+            margin-right: 10px;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            overflow: auto;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- STEP 1 -->
+        <div id="step-1" class="page active">
+            <h1>Step 1</h1>
+            <p>Select a URL from the list below:</p>
+            <div id="urlList">
+                <label><input type="radio" name="url" value="https://mgmt.auth.adobe.com/esm/v3/media-company/year"> https://mgmt.auth.adobe.com/esm/v3/media-company/year</label><br>
+                <label><input type="radio" name="url" value="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month"> https://mgmt.auth.adobe.com/esm/v3/media-company/year/month</label><br>
+                <label><input type="radio" name="url" value="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day"> https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day</label><br>
+                <label><input type="radio" name="url" value="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour"> https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour</label><br>
+                <!-- Add 9 more URLs here -->
+            </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div id="step-2" class="page">
+            <h1>Step 2</h1>
+            <form id="softwareForm">
+                
+                <label for="esmUrl">ESM URL:</label><br>
+                <input type="text" id="esmUrl" name="esmUrl"><br><br>
+
+                <label for="softwareStatement">Software Statement:</label><br>
+                <textarea id="softwareStatement" name="softwareStatement"></textarea><br>
+                
+                <label for="environment">Select Environment:</label>
+                <select id="environment" name="environment" required>
+                    <option value="production">Production</option>
+                    <option value="staging">Staging</option>
+                </select>
+            </form>
+        </div>
+
+        <!-- STEP 3 -->
+        <div id="step-3" class="page">
+            <h1>Step 3</h1>
+
+            <div id="response"></div>
+
+            <!-- Additional buttons -->
+            <div class="navigation">
+                <button id="backToStep2" class="button">Back to Step 2</button>
+                <button id="startButton" class="button">Start Over</button>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div id="navigation" class="navigation">
+            <button id="prevButton" class="button" disabled>Previous</button>
+            <button id="nextButton" class="button">Next</button>
+        </div>
+    </div>
+
+    <script>
+        const pages = document.querySelectorAll('.page');
+        const prevButton = document.getElementById('prevButton');
+        const nextButton = document.getElementById('nextButton');
+        const backToStep2Button = document.getElementById('backToStep2');
+        const startButton = document.getElementById('startButton');
+        const navigation = document.getElementById('navigation');
+
+        let currentStep = 0;
+        let selectedUrl = '';
+
+        function updatePage() {
+            pages.forEach((page, index) => {
+                page.classList.toggle('active', index === currentStep);
+            });
+
+            // Hide navigation buttons if on Step 2 or Step 3
+            navigation.style.display = currentStep < pages.length - 1 ? 'flex' : 'none';
+
+            // Enable or disable buttons at boundaries
+            prevButton.disabled = currentStep === 0;
+            nextButton.disabled = currentStep === pages.length - 1;
+
+            // Update STEP 2 environment field with the selected URL
+            if (currentStep === 1) {
+                const esmField = document.getElementById('esmUrl');
+                esmField.value = selectedUrl || '';
+            }
+
+            // Show and hide buttons on STEP 3
+            if (currentStep === 2) {
+                backToStep2Button.style.display = 'inline-block';
+                startButton.style.display = 'inline-block';
+            } else {
+                backToStep2Button.style.display = 'none';
+                startButton.style.display = 'none';
+            }
+        }
+
+        nextButton.addEventListener('click', async () => {
+            if (currentStep === 0) {
+                // STEP 1: Store selected URL
+                const selectedRadio = document.querySelector('input[name="url"]:checked');
+                if (!selectedRadio) {
+                    alert('Please select a URL before proceeding.');
+                    return;
+                }
+                selectedUrl = selectedRadio.value;
+            }
+
+            if (currentStep === 1) {
+                // STEP 2: Submit the form and process the data
+                const esmUrl = document.getElementById('esmUrl').value;
+                const softwareStatement = document.getElementById('softwareStatement').value;
+                const environment = document.getElementById('environment').value;
+                const responseDiv = document.getElementById('response');
+                responseDiv.innerHTML = 'Processing...'; // Clear any previous responses and show loading message
+
+                // Determine the host based on the selected environment
+                const host = environment === 'staging' 
+                    ? 'https://sp.auth-staging.adobe.com' 
+                    : 'https://sp.auth.adobe.com';
+
+                try {
+                    // First AJAX POST request
+                    const response1 = await fetch(`${host}/o/client/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ "software_statement" : softwareStatement })
+                    });
+                    const data1 = await response1.json();
+
+                    // get rotating clientId & clientSecret
+                    let clientId = data1.client_id;
+                    let clientSecret = data1.client_secret;
+
+                    // Display responses
+                    responseDiv.innerHTML = `
+                        <p><strong>Response 1:</strong> ${JSON.stringify(data1)}</p>
+                    `;
+
+                    // Second AJAX POST request
+                    const response2 = await fetch(`${host}/o/client/token?grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data2 = await response2.json();
+
+                    // get accessToken for use with DCR APIs
+                    let accessToken = data2.access_token;
+
+                    let termCmd = `curl -H "Authorization: Bearer ${accessToken}" -X GET "${esmUrl}"`;
+
+                    // Display responses
+                    responseDiv.innerHTML += `
+                        <p><strong>Response 2:</strong> ${JSON.stringify(data2)}</p>
+                        <p><strong>SEND to TERMINAL:</strong> ${termCmd}</p>
+                    `;
+
+                } catch (error) {
+                    responseDiv.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+                }
+            }
+
+            if (currentStep < pages.length - 1) {
+                currentStep++;
+                updatePage();
+            }
+        });
+
+        prevButton.addEventListener('click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                updatePage();
+            }
+        });
+
+        backToStep2Button.addEventListener('click', () => {
+            currentStep = 1;
+            updatePage();
+        });
+
+        startButton.addEventListener('click', () => {
+            currentStep = 0;
+            updatePage();
+        });
+
+        // Initialize first page
+        updatePage();
+    </script>
+
+</body>
+</html>

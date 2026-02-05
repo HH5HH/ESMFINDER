@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clickable Time Selector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            margin: 20px 0;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .column h2 {
+            margin-bottom: 10px;
+        }
+        .blocks {
+            display: flex;
+            flex-wrap: wrap;
+            width: 100px;
+            gap: 5px;
+            justify-content: center;
+        }
+        .block {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .block:hover {
+            background-color: #f0f0f0;
+        }
+        .highlight {
+            background-color: #4caf50;
+            color: white;
+            font-weight: bold;
+        }
+        #timestamp {
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Time Selector</h1>
+    <div class="container">
+        <div class="column" id="year-column">
+            <h2>Year</h2>
+            <div class="blocks" id="year-blocks"></div>
+        </div>
+        <div class="column" id="month-column">
+            <h2>Month</h2>
+            <div class="blocks" id="month-blocks"></div>
+        </div>
+        <div class="column" id="day-column">
+            <h2>Day</h2>
+            <div class="blocks" id="day-blocks"></div>
+        </div>
+        <div class="column" id="hour-column">
+            <h2>Hour</h2>
+            <div class="blocks" id="hour-blocks"></div>
+        </div>
+        <div class="column" id="minute-column">
+            <h2>Minute</h2>
+            <div class="blocks" id="minute-blocks"></div>
+        </div>
+    </div>
+    <div id="timestamp">Selected Time: </div>
+
+    <script>
+        const now = new Date();
+        let selectedDate = {
+            year: now.getFullYear(),
+            month: now.getMonth() + 1,
+            day: now.getDay(),
+            hour: now.getHours(),
+            minute: now.getMinutes()
+        };
+
+        function generateBlocks(id, count, offset = 0, names = null) {
+            const container = document.getElementById(id);
+            for (let i = 0; i < count; i++) {
+                const value = offset + i;
+                const displayValue = names ? names[i] : value;
+                const block = document.createElement('div');
+                block.className = 'block';
+                block.textContent = displayValue;
+                block.dataset.value = value;
+                block.addEventListener('click', () => updateSelection(id, value));
+                container.appendChild(block);
+            }
+        }
+
+        function updateSelection(column, value) {
+            selectedDate[column.split('-')[0]] = value;
+            updateHighlights();
+            updateTimestamp();
+        }
+
+        function updateHighlights() {
+            document.querySelectorAll('.block').forEach(block => {
+                const column = block.parentElement.id.split('-')[0];
+                if (parseInt(block.dataset.value) === selectedDate[column]) {
+                    block.classList.add('highlight');
+                } else {
+                    block.classList.remove('highlight');
+                }
+            });
+        }
+
+        function updateTimestamp() {
+            const { year, month, day, hour, minute } = selectedDate;
+            document.getElementById('timestamp').textContent =
+                `Selected Time: ${year}-${String(month).padStart(2, '0')}-${day} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        }
+
+        // Generate the blocks
+        generateBlocks('year-blocks', 3, 2022);
+        generateBlocks('month-blocks', 12, 1, ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
+        generateBlocks('day-blocks', 7, 0, ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+        generateBlocks('hour-blocks', 24);
+        generateBlocks('minute-blocks', 60);
+
+        // Initialize highlights
+        updateHighlights();
+        updateTimestamp();
+    </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Register</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    label, input, textarea, select {
+      display: block;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+    textarea {
+      height: 100px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #response {
+      margin-top: 20px;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Process Software Statement</h1>
+  <form id="softwareForm">
+    <label for="environment">Select Environment:</label>
+    <select id="environment" name="environment" required>
+      <option value="staging">Staging</option>
+      <option value="production">Production</option>
+    </select>
+
+    <label for="softwareStatement">Enter Software Statement:</label>
+    <textarea id="softwareStatement" name="softwareStatement" required></textarea>
+    
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="response"></div>
+
+  <script>
+    document.getElementById('softwareForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); // Prevent form from refreshing the page
+      
+      const environment = document.getElementById('environment').value;
+      const softwareStatement = document.getElementById('softwareStatement').value;
+      const responseDiv = document.getElementById('response');
+      responseDiv.innerHTML = 'Processing...'; // Clear any previous responses and show loading message
+
+      // Determine the host based on the selected environment
+      const host = environment === 'staging' 
+        ? 'https://sp.auth-staging.adobe.com' 
+        : 'https://sp.auth.adobe.com';
+
+      try {
+        // First AJAX POST request
+        const response1 = await fetch(`${host}/o/client/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ "software_statement" : softwareStatement })
+        });
+        const data1 = await response1.json();
+
+        // get rotating clientId & clientSecret
+        let clientId = data1.client_id;
+        let clientSecret = data1.client_secret;
+        console.log( clientId + " : " + clientSecret );
+        
+        // Display responses
+        responseDiv.innerHTML = `
+          <h3>Results</h3>
+          <p><strong>Response 1:</strong> ${JSON.stringify(data1)}</p>
+        `;
+
+        // Second AJAX POST request
+        const response2 = await fetch(`${host}/o/client/token?grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        const data2 = await response2.json();
+
+        // get accessToken for use with DCR APIs
+        let accessToken = data2.access_token;
+        let termCmd = `curl -H "Authorization: Bearer ${accessToken}" -X DELETE -v "${host}pl/reset-tempass/v3/reset?device_id=all&requestor_id=AdobeBEAST&mvpd_id=TempPass"`;
+
+        console.log(accessToken);
+        console.log(termCmd);
+
+
+        // Display responses
+        responseDiv.innerHTML += `
+          <p><strong>Response 2:</strong> ${JSON.stringify(data2)}</p>
+          <p><strong>SEND to TERMINAL:</strong> ${termCmd}</p>
+        `;
+
+
+
+//         const resetTempPass = () =>
+//     {
+// // POST request using fetch with set headers
+//         var bearerToken = 'Bearer ' + accessToken;
+//         const requestOptions = {
+//             method: 'DELETE',
+//             headers: {
+//                 'Authorization': bearerToken,
+//                 'Content-Type': 'application/json',
+//                 'Accept': '*/*'
+//     },
+//         };
+//         fetch('https://mgmt.auth.adobe.com/reset-tempass/v3/reset?device_id=all&requestor_id=VICELAND&mvpd_id=VICELAND_TempPass_VICELAND_30min', requestOptions)
+//             .then((response) => {
+//                 alert(response.status);
+//             })
+//     }
+
+const response3 = await fetch('https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day', {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'Accept': '*/*'
+          }
+        });
+        const data3 = await response3.json();
+        
+        // Display responses
+        responseDiv.innerHTML = `
+          <h3>Results</h3>
+          <p><strong>Response 1:</strong> ${JSON.stringify(data1)}</p>
+        `;
+
+
+
+
+      } catch (error) {
+        responseDiv.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+      }
+    });
+  </script>
+
+</body>
+</html>

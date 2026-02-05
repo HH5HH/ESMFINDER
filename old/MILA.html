@@ -1,0 +1,3015 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MILA</title>
+    <style>
+        /* Global Reset and Base Styles */
+        * {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            flex-direction: column;
+        }
+
+        /* App Container */
+        #app {
+            width: 85vw;
+            min-width: 1020px;
+            height: 96vh;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Upload Box */
+        #upload-box {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1.5em;
+            color: #666;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        #upload-box.dragover {
+            border-color: #000;
+            background-color: #f9f9f9;
+        }
+
+        /* Dropdowns */
+        select {
+            padding: 10px;
+            font-size: 16px;
+            width: 25%;
+        }
+
+        /* Dashboard Layout */
+        #dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .pod {
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        #media-company-pod,
+        #mvpds-pod {
+            width: 100%;
+            flex: 1 1 100%;
+        }
+
+        #fraud-pod,
+        #events-pod {
+            flex: 1 1 calc(50% - 10px);
+            min-width: 300px;
+            height: 250px;
+            overflow: scroll;
+        }
+
+        /* Results Section */
+        #results {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Status Message */
+        #statusMessage {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Spinner */
+        #spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #09f;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Labels and Links */
+        label {
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            white-space: nowrap;
+            font-size: medium;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        tr:nth-child(even) {
+            background-color: #EFEFEF;
+        }
+
+        /* Scrollable Containers */
+        .scroll {
+            overflow-x: auto;
+            max-height: 500px;
+            width: 100%;
+            padding: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        /* Meter Styles */
+        meter {
+            width: 100%;
+        }
+
+        meter::-webkit-meter-bar {
+            background: #eee;
+        }
+
+        meter::-webkit-meter-optimum-value {
+            background: var(--meter-color);
+        }
+
+        meter::-moz-meter-bar {
+            background: var(--meter-color);
+        }
+
+        meter.green::-webkit-meter-optimum-value {
+            background: green;
+        }
+
+        meter.maroon::-webkit-meter-optimum-value {
+            background: red;
+        }
+
+        meter.grey::-webkit-meter-optimum-value {
+            background: grey;
+        }
+
+        .copy-url {
+            cursor: pointer;
+            /* Indicates the element is clickable */
+            color: #007BFF;
+            /* Default text color (blue) */
+            text-decoration: none;
+            /* No underline by default */
+            font-weight: bold;
+            /* Make the text bold */
+            transition: color 0.2s ease;
+            /* Smooth transition for color change */
+        }
+
+        /* Hover effect */
+        .copy-url:hover {
+            color: #FF6F61;
+            /* Neon coral color for hover */
+            text-decoration: underline;
+            /* Underline on hover */
+            text-decoration-color: goldenrod;
+            /* Match underline color to text */
+            text-decoration-thickness: 2px;
+            /* Thicker underline */
+            text-underline-offset: 4px;
+            /* Space between text and underline */
+        }
+
+        /* Click effect (copied state) */
+        .copy-url.active {
+            color: #39FF14;
+            /* Neon green color for copied state */
+            text-decoration: double;
+            /* Remove underline on click */
+        }
+
+
+
+        /* Media Queries */
+        @media (max-width: 1020px) {
+            #app {
+                min-width: 100%;
+                padding: 10px;
+            }
+
+            .pod {
+                flex: 1 1 100%;
+                min-width: 100%;
+            }
+
+            #upload-box {
+                font-size: 1.2em;
+            }
+
+            select {
+                width: 100%;
+            }
+
+            #fraud-pod,
+            #events-pod {
+                flex: 1 1 100%;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            th,
+            td {
+                padding: 8px;
+                white-space: nowrap;
+                font-size: medium;
+                text-align: center;
+                vertical-align: middle;
+            }
+
+            tr:nth-child(even) {
+                background-color: #EFEFEF;
+            }
+        }
+
+        /* Specific Table Styles */
+        #SLOW_MVPDS_TBL td:nth-child(2),
+        #SLOW_MVPDS_TBL th:nth-child(2) {
+            white-space: nowrap;
+            min-width: 420px;
+        }
+
+        #SLOW_MVPDS_TBL tr.data-row:hover {
+            background-color: #f0f8ff !important;
+            cursor: pointer;
+        }
+
+        #SLOW_MVPDS_TBL tr.data-row.selected {
+            background-color: #b0d0ff !important;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Filter Container */
+        #filter-container {
+            display: flex;
+            vertical-align: top;
+            justify-content: stretch;
+            gap: 11px;
+            width: 100%;
+        }
+
+        #ddPremiumCustApps {
+            flex: 0 0 auto;
+            width: 25%;
+        }
+
+        #fltReqBox {
+            display: none;
+            flex: 1;
+            margin-left: 20px;
+        }
+
+        #fsRequestorIds {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        #fsRequestorIds legend {
+            font-weight: bold;
+        }
+
+        #fsRequestorIds label {
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            margin-right: 10px;
+            text-decoration: none;
+        }
+
+        #fsRequestorIds label:hover {
+            text-decoration: underline;
+        }
+
+        #fsRequestorIds input[type='checkbox'] {
+            margin-right: 5px;
+        }
+
+        #applyFilterLink {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 10px 0;
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        #applyFilterLink:hover {
+            background-color: #e0e0e0;
+            text-decoration: underline;
+        }
+
+        #susRptContents{
+            min-height: 600px;
+        }
+
+        input[type='checkbox'] {
+            margin-right: 5px;
+        }
+
+        /* Popup Styles */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 90%;
+            width: auto;
+            height: auto;
+            min-width: 300px;
+            position: relative;
+            text-align: center;
+        }
+
+        .popup-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .popup-header img {
+            max-width: 420px;
+            height: auto;
+        }
+
+        .popup-header h1 {
+            margin: 0;
+            font-size: 1.5em;
+            white-space: nowrap;
+        }
+
+        .close-btn:hover {
+            color: #ff0000;
+        }
+
+        .save-pdf-btn,
+        .close-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .save-pdf-btn:hover {
+            background-color: #218838;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            font-size: 20px;
+        }
+        
+        /* Print Styles */
+        @media print { 
+            * {
+                font-size: small;
+            }
+            H4 {
+                font-size: large;
+            }
+
+            table {
+                width: 100%;
+                table-layout: auto;
+                /* Ensures the table adjusts to the content */
+            }
+
+            td {
+                white-space: normal;
+                /* Allow text to wrap */
+                text-align: center;
+                vertical-align: middle;
+                /* Center content vertically */
+                height: auto;
+                /* Ensure height adjusts to content */
+                padding: 4px;
+                /* Add some padding to ensure content doesn't touch the borders */
+            }
+
+            tr {
+                height: auto;
+                /* Ensure row height adjusts to content */
+            }
+
+            meter {
+                position: relative;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                border-radius: 5px;
+                display: inline-block;
+                /* Ensure meter behaves like a block element */
+                width: 100%;
+                /* Ensure meter takes up the full width of the cell */
+                box-sizing: border-box;
+                /* Ensure padding and border are included in the width */
+            }
+
+            meter::-webkit-meter-bar {
+                background: #eee;
+                border-radius: 5px;
+            }
+
+            meter::-webkit-meter-optimum-value {
+                background: var(--meter-color);
+                border-radius: 5px;
+            }
+
+            meter::before {
+                content: attr(value) "%";
+                position: absolute;
+                /* Position the pseudo-element absolutely within the meter */
+                top: 50%;
+                /* Center vertically */
+                left: 50%;
+                /* Center horizontally */
+                transform: translate(-50%, -50%);
+                /* Offset to truly center the content */
+                z-index: 1;
+                /* Ensure the text appears on top of the meter */
+                pointer-events: none;
+                /* Ensure the text doesn't interfere with clicks */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div id="upload-box">Please download the latest Premium Collection CSV, then come back here and Drop it like
+            it's
+            hot</div>
+        <div id="spinner">
+            <div class="spinner"></div><span>Please Wait...</span>
+        </div>
+        <div id="filter-container">
+            <select id="ddPremiumCustApps" style="display: none;"></select>
+            <select id="ddTimeZooms" style="display: none;">
+                <option value="">Select time</option>
+                <option value="MONTH">MONTH</option>
+                <option value="DAY">DAY</option>
+                <option value="HOUR">HOUR</option>
+                <option value="MINUTE">MINUTE</option>
+            </select>
+            <div id="fltReqBox">
+                <fieldset id="fsRequestorIds"></fieldset>
+            </div>
+        </div>
+
+
+        <div id="dashboard" style="display: none;">
+            <div id="media-company-pod" class="pod full-width">
+                <span class="copy-url" data-url="media-company-url">
+                    <h4>MEDIA COMPANY</h4>
+                    <input type="hidden" id="media-company-url">
+                </span>
+                <table align="center" border="0" id="MEDIACO_TBL">
+                    <thead>
+                        <tr>
+                            <th>DATETIME</th>
+                            <th>REQUESTOR-ID</th>
+                            <th>Ng</th>
+                            <th>Zg</th>
+                            <th>Zf</th>
+                            <th>FRD</th>
+                            <th>PLAY_REQUESTS</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="fraud-pod" class="pod">
+                <span class="copy-url" data-url="fraud-url">
+                    <h4>FRAUD</h4>
+                    <input type="hidden" id="fraud-url">
+                </span>
+                <table align="center" border="0" id="FRAUD_TBL">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="events-pod" class="pod">
+                <span class="copy-url" data-url="events-url">
+                    <h4>EVENTS</h4>
+                    <input type="hidden" id="events-url">
+                </span>
+                <table align="center" border="0" id="EVENTS_TBL">
+                    <tbody>
+                </table>
+            </div>
+
+            <div id="mvpds-pod" class="pod full-width">
+                <span class="copy-url" data-url="mvpds-url">
+                    <h4>MVPDS</h4>
+                    <input type="hidden" id="mvpds-url">
+                </span>
+                <table align="center" border="0" id="BASE_MVPDS_TBL">
+                    <thead>
+                        <tr>
+                            <th>DATETIME</th>
+                            <th>REQUESTOR-ID</th>
+                            <th>AVG Ng</th>
+                            <th>AVG Zg</th>
+                            <th>AVG Zf</th>
+                            <th>AVG ZLate</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="scroll">
+                    <table align="center" border="1" id="SLOW_MVPDS_TBL">
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <div id="results" style="display: none;">
+                <p><strong>Media Company:</strong> <span id="mediaCoResult"></span></p>
+                <p><strong>Environment:</strong> <span id="envResult"></span></p>
+                <p><strong>Client ID:</strong> <span id="clientIdResult"></span></p>
+                <p><strong>Client Secret:</strong> <span id="clientSecretResult"></span></p>
+                <p><strong>Access Token:</strong> <span id="accessTokenResult"></span></p>
+                <p><strong>Token Expiration (UTC):</strong> <span id="tokenExpirationUTC"></span></p>
+                <p><strong>Token Expiration (Local):</strong> <span id="tokenExpirationLocal"></span></p>
+                <div id="statusMessage"></div>
+            </div>
+        </div>
+
+
+        <!-- sus.rpt-->
+        <div class="popup-overlay" id="popupOverlay">
+            <div class="popup-content">
+                <!-- Close button -->
+                <button id="close-btn" class="close-btn" onclick="closePopup()">&times;</button>
+
+                <!-- Scrollable table section -->
+                <div class="scroll" id="susRptContents">
+
+                    <!-- Header section with logo and display name -->
+                    <div class="popup-header">
+                        <img id="mvpdLogo" src="" alt="MVPD Logo">
+                        <h1 id="mvpdDisplayName" class="mvpd-display-name"></h1>
+                    </div>
+
+                    <span class="copy-url" data-url="sdkDcTBL-url">
+                        <h4>SDK x DC</h4>
+                        <input type="hidden" id="sdkDcTBL-url">
+                    </span>
+                    <table align="center" border="1" id="sdkDcTBL">
+                        <thead>
+                            <tr>
+                                <th>DATETIME</th>
+                                <th>DATACENTER</th>
+                                <th>REQUESTOR-ID</th>
+                                <th>PLATFORM</th>
+                                <th>SDK</th>
+                                <th>Ng</th>
+                                <th>Zg</th>
+                                <th>Zf</th>
+                                <th>FRD</th>
+                                <th>PLAY_REQUESTS</th>
+                                <th>UNIQUE-ACCOUNTS</th>
+                                <th>UNIQUE-SESSIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+
+                    <span class="copy-url" data-url="sdkMvpdTBL-url">
+                        <h4>SDK</h4>
+                        <input type="hidden" id="sdkMvpdTBL-url">
+                    </span>
+                    <table align="center" border="1" id="sdkMvpdTBL">
+                        <thead>
+                            <tr>
+                                <th>DATETIME</th>
+                                <th>REQUESTOR-ID</th>
+                                <th>PLATFORM</th>
+                                <th>SDK</th>
+                                <th>Ng</th>
+                                <th>Zg</th>
+                                <th>Zf</th>
+                                <th>FRD</th>
+                                <th>PLAY_REQUESTS</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+
+                    <span class="copy-url" data-url="eventsMvpdTBL-url">
+                        <h4>EVENTS</h4>
+                        <input type="hidden" id="eventsMvpdTBL-url">
+                    </span>
+                    <table align="center" border="1" id="eventsMvpdTBL">
+                        <thead>
+                            <tr>
+                                <th>DATETIME</th>
+                                <th>REQUESTOR-ID</th>
+                                <th>EVENT</th>
+                                <th>REASON</th>
+                                <th>COUNT</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+
+                    <span class="copy-url" data-url="dcTBL-url">
+                        <h4> <span id="reqIdDisplay"></span> x DC</h4>
+                        <input type="hidden" id="dcTBL-url">
+                    </span>
+                    <table align="center" border="1" id="dcTBL">
+                        <thead>
+                            <tr>
+                                <th>DATETIME</th>
+                                <th>DATACENTER</th>
+                                <th>DEVICE</th>
+                                <th>Ng</th>
+                                <th>Zg</th>
+                                <th>Zf</th>
+                                <th>FRD</th>
+                                <th>PLAY_REQUESTS</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+
+                    <span class="copy-url" data-url="todayTBL-url">
+                        <h4>DAY</h4>
+                        <input type="hidden" id="todayTBL-url">
+                    </span>
+                    <table align="center" border="1" id="todayTBL">
+                        <thead>
+                            <tr>
+                                <th>DATETIME</th>
+                                <th>REQUESTOR-ID</th>
+                                <th>Ng</th>
+                                <th>Zg</th>
+                                <th>Zf</th>
+                                <th>FRD</th>
+                                <th>PLAY_REQUESTS</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+
+                    <span class="copy-url" data-url="susTBL1-url">
+                        <h4>HOUR</h4>
+                        <input type="hidden" id="susTBL1-url">
+                    </span>
+                    <table align="center" border="1" id="susTBL1">
+                        <thead>
+                            <tr>
+                                <th>DATETIME</th>
+                                <th>REQUESTOR-ID</th>
+                                <th>Ng</th>
+                                <th>Zg</th>
+                                <th>Zf</th>
+                                <th>FRD</th>
+                                <th>PLAY_REQUESTS</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <button id="save-pdf-btn" class="save-pdf-btn" onclick="saveAsPDF()">Save as PDF</button>
+            </div>
+        </div>
+        <!-- sus.rpt-->
+
+
+        <script>
+            const appTitle = "MILA:PREMIUM-COLLECTION";
+            // Constants and Variables
+            const DASHBOARD_POD_TIME_ESMURLS = {
+                MEDIA_COMPANY: {
+                    MONTH: "/esm/v3/media-company/year/month?requestor-id&mvpd!=None&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens",
+                    DAY: "/esm/v3/media-company/year/month/day?requestor-id&mvpd!=None&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens",
+                    HOUR: "/esm/v3/media-company/year/month/day/hour?requestor-id&mvpd!=None&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens",
+                    MINUTE: "/esm/v3/media-company/year/month/day/hour/minute?requestor-id&mvpd!=None&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens"
+                },
+                FRAUD: {
+                    MONTH: "/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason=fraud",
+                    DAY: "/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason=fraud",
+                    HOUR: "/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason=fraud",
+                    MINUTE: "/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason=fraud"
+                },
+                EVENTS: {
+                    // don't filter out reason!=None here, we want all of the events
+                    MONTH: "/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason",
+                    DAY: "/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason",
+                    HOUR: "/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason",
+                    MINUTE: "/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason"
+                },
+                MVPDS: {
+                    MONTH: "/esm/v3/media-company/year/month?requestor-id&mvpd!=None&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens%2Cauthz-latency",
+                    DAY: "/esm/v3/media-company/year/month/day/proxy/mvpd?requestor-id&mvpd!=None&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens%2Cauthz-latency",
+                    HOUR: "/esm/v3/media-company/year/month/day/hour?requestor-id&mvpd!=None&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens%2Cauthz-latency",
+                    MINUTE: "/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd?requestor-id&mvpd!=None&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens%2Cauthz-latency"
+                }
+            };
+
+            const app = document.getElementById('app');
+            const uploadBox = document.getElementById('upload-box');
+            const ddPremiums = document.getElementById('ddPremiumCustApps');
+            const ddTime = document.getElementById('ddTimeZooms');
+            const spinnerElement = document.getElementById('spinner');
+            const resultsDiv = document.getElementById('results');
+            const statusMessage = document.getElementById('statusMessage');
+            const dashboard = document.getElementById('dashboard');
+
+
+            let _FLTR_ESM = ''; // tack on ESM filter
+            let requestorConfigCache = {}; // call config once per requestor-id
+            let currentRequestorId = null;
+            let currentMvpdId = null;
+            const DEFAULT_THRESHOLD = 45; // Default threshold of 45%
+
+            // APP INIT - setup app, check localStorage for Premiums
+            function init() {
+                document.title = appTitle;
+                populateSelectList('ddPremiumCustApps');
+
+                _setupLabels()
+
+                if (localStorage.length > 0) {
+                    uploadBox.style.display = 'none';
+                    ddPremiums.style.display = 'block';
+                    ddTime.style.display = 'block';
+                } else {
+                    document.getElementById('fltReqBox').style.display = 'none'; // Hide fltReqBox if no data exists
+                }
+            }
+
+            // THEMEAT //////////////////////////////////////////
+
+            function calculateTimeRange(time) {
+                const now = new Date();
+                let start;
+
+                switch (time) {
+                    case "MONTH":
+                        start = new Date(now.getFullYear(), now.getMonth(), 1);
+                        break;
+                    case "DAY":
+                        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                        break;
+                    case "HOUR":
+                        start = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+                        break;
+                    case "MINUTE":
+                        start = new Date(now.getTime() - 60 * 60 * 1000); // 60 minutes
+                        break;
+                    default:
+                        throw new Error("Invalid time range");
+                }
+
+                const formatLocalTime = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, "0");
+                    const day = String(date.getDate()).padStart(2, "0");
+                    const hours = String(date.getHours()).padStart(2, "0");
+                    const minutes = String(date.getMinutes()).padStart(2, "0");
+                    return `${year}-${month}-${day}T${hours}:${minutes}`;
+                };
+
+                return {
+                    start: formatLocalTime(start),
+                    end: formatLocalTime(now),
+                };
+            }
+
+            // Handle File Upload
+            const handleFile = async (file) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const text = e.target.result;
+                    const rows = parseCSV(text);
+                    if (rows.length > 0) {
+                        spinnerElement.style.display = 'flex';
+                        await processCSVRows(rows);
+                        spinnerElement.style.display = 'none';
+                        populateSelectList('ddPremiumCustApps');
+                        uploadBox.style.display = 'none';
+                        ddPremiums.style.display = 'block';
+                        ddTime.style.display = 'block';
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            // Parse CSV
+            const parseCSV = (text) => {
+                const lines = text.split('\n');
+                const headers = lines[0].split(',');
+                return lines.slice(1).filter(line => line.trim()).map(line => {
+                    const values = line.split(',');
+                    return {
+                        mediaCompany: values[0].trim(),
+                        env: values[1].trim(),
+                        key: values[2].trim()
+                    };
+                });
+            };
+
+            // Process CSV Rows
+            const processCSVRows = async (rows) => {
+                for (const row of rows) {
+                    if (row.mediaCompany.length <= 1 || row.env.length <= 1 || row.key.length <= 1) {
+                        continue;
+                    }
+
+                    const softwareStatement = row.key;
+                    const environment = row.env;
+                    const host = environment === 'staging'
+                        ? 'https://sp.auth-staging.adobe.com'
+                        : 'https://sp.auth.adobe.com';
+
+                    try {
+                        const response = await fetch(`${host}/o/client/register`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ software_statement: softwareStatement })
+                        });
+
+                        const data = await response.json();
+                        const clientId = data.client_id;
+                        const clientSecret = data.client_secret;
+
+                        const c_name = `${row.mediaCompany}_${row.env}`;
+                        const c_val = `${clientId}:${clientSecret}`;
+                        setLocalStorage(c_name, c_val);
+                        console.log(`NOW WELCOMING!!! ${c_name} = ${c_val}`);
+                    } catch (error) {
+                        console.error(`Error processing row: ${row.mediaCompany}`, error);
+                    }
+                }
+            };
+
+            // Set LocalStorage
+            function setLocalStorage(key, value) {
+                const skey = key.split(' ').join('');
+                const svalue = value.split(' ').join('');
+                localStorage.setItem(skey, svalue);
+            }
+
+            // Populate Select List
+            function populateSelectList(selectElementId) {
+                const selectElement = document.getElementById(selectElementId);
+                selectElement.innerHTML = '';
+
+                // Create the default option
+                const defaultOption = document.createElement('option');
+                defaultOption.text = 'Select Media-Co';
+                defaultOption.value = '';
+
+                // Add the default option first
+                selectElement.add(defaultOption);
+
+                // Collect all options from localStorage in an array
+                const options = [];
+
+                // Add options from localStorage
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.text = key;
+                    options.push(option);
+                }
+
+                // Sort options alphabetically by their text
+                options.sort((a, b) => a.text.localeCompare(b.text));
+
+                // Add sorted options to the select element
+                options.forEach(option => selectElement.add(option));
+            }
+
+            // Handle Select Box Change
+            async function changeMediaCompany(e) {
+
+                const selectedValue = e.target.value;
+                _FLTR_ESM = ''; // clear requestor-id filter when media-company changes
+
+                if (!selectedValue) {
+                    // Clear the dashboard and reset all fields
+                    clearDashboard();
+                    return;
+                }
+                const aMediaCoEnv = e.target.options[e.target.selectedIndex].text.split('_');
+                const aClient = selectedValue.split(':');
+
+                const mediaCo = aMediaCoEnv[0];
+                const environment = aMediaCoEnv[1];
+                const clientId = aClient[0];
+                const clientSecret = aClient[1];
+                let accessToken = aClient[2];
+                let expirationDateEpoch = aClient[3];
+
+                // Clear the cache when the dropdown changes
+                requestorConfigCache = {};
+                console.log("CONFIG CACHE CLEARED......... NEW MEDIA-CO : " + mediaCo);
+
+                let host;
+                if (!accessToken && !expirationDateEpoch) {
+                    console.log("MUST GET ACCESS TOKEN");
+                    host = environment === 'staging'
+                        ? 'https://sp.auth-staging.adobe.com'
+                        : 'https://sp.auth.adobe.com';
+                } else {
+                    console.log("GET THAT ESM!!!!");
+                    host = environment === 'staging'
+                        ? 'https://mgmt.auth-staging.adobe.com'
+                        : 'https://mgmt.auth.adobe.com';
+                }
+
+                const isTokenValid = accessToken && expirationDateEpoch && parseInt(expirationDateEpoch) > Date.now();
+
+                if (!isTokenValid) {
+                    if (!accessToken) {
+                        statusMessage.textContent = "No accessToken > Requesting new token...";
+                        console.log("No accessToken > Requesting new token...");
+                    } else {
+                        statusMessage.textContent = "accessToken expired > Requesting new token...";
+                        console.log("accessToken expired > Requesting new token...");
+                    }
+
+                    try {
+                        // Ensure refresh token uses token endpoint, not esm endpoint
+                        host = environment === 'staging'
+                            ? 'https://sp.auth-staging.adobe.com'
+                            : 'https://sp.auth.adobe.com';
+
+                        const response2 = await fetch(`${host}/o/client/token?`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`
+                        });
+                        const data2 = await response2.json();
+
+                        accessToken = data2.access_token;
+                        const createdAt = data2.created_at;
+                        const expiresIn = data2.expires_in;
+                        const expirationTimeUTC = new Date(createdAt + expiresIn * 1000).toUTCString();
+                        const expirationTimeLocal = new Date(createdAt + expiresIn * 1000).toString();
+                        expirationDateEpoch = createdAt + expiresIn * 1000;
+
+                        const updatedValue = `${clientId}:${clientSecret}:${accessToken}:${expirationDateEpoch}`;
+                        setLocalStorage(`${mediaCo}_${environment}`, updatedValue);
+                        e.target.options[e.target.selectedIndex].value = updatedValue;
+
+                        statusMessage.textContent = "accessToken refreshed!!!";
+                        console.log("accessToken refreshed!!!");
+
+                        if (ddTime.value) {
+                            console.log("_________________[" + ddTime.value + "]");
+                            BuildDashboard(ddTime.value, accessToken, environment);
+                        } else {
+                            console.log("_________________DEFAULT LOAD DAY");
+                            ddTime.selectedIndex = 2; // select DAY
+                            BuildDashboard('DAY', accessToken, environment);
+                            // dashboard.style.display = 'flex';
+                            // console.log("_________________MOVE THIS ^ into BuildDashboard??");
+                        }
+
+                    } catch (error) {
+                        console.error('Error retrieving access token:', error);
+                        statusMessage.textContent = "Error retrieving access token. Please try again.";
+                        console.log("Error retrieving access token. Please try again.");
+                        clearDashboard();
+                        return;
+                    }
+                } else {
+                    statusMessage.textContent = "accessToken still valid!";
+                    console.log("accessToken still valid!");
+
+                    if (ddTime.value) {
+                        console.log("_________________[" + ddTime.value + "]");
+                        BuildDashboard(ddTime.value, accessToken, environment);
+                    } else {
+                        console.log("_________________DEFAULT2 LOAD DAY");
+                        ddTime.selectedIndex = 2; // select DAY
+                        BuildDashboard('DAY', accessToken, environment);
+                        // dashboard.style.display = 'flex';
+                        // console.log("_________________MOVE THIS ^ into BuildDashboard??");
+                    }
+                }
+
+                document.getElementById('mediaCoResult').textContent = mediaCo;
+                document.getElementById('envResult').textContent = environment;
+                document.getElementById('clientIdResult').textContent = clientId;
+                document.getElementById('clientSecretResult').textContent = clientSecret;
+                document.getElementById('accessTokenResult').textContent = accessToken;
+                document.getElementById('tokenExpirationUTC').textContent = new Date(parseInt(expirationDateEpoch)).toUTCString();
+                document.getElementById('tokenExpirationLocal').textContent = new Date(parseInt(expirationDateEpoch)).toString();
+
+                resultsDiv.style.display = 'block';
+            }
+
+            function clearDashboard() {
+                dashboard.style.display = 'none';
+                ddTime.selectedIndex = 0;
+                resultsDiv.style.display = 'none';
+                document.getElementById('mediaCoResult').textContent = '';
+                document.getElementById('envResult').textContent = '';
+                document.getElementById('clientIdResult').textContent = '';
+                document.getElementById('clientSecretResult').textContent = '';
+                document.getElementById('accessTokenResult').textContent = '';
+                document.getElementById('tokenExpirationUTC').textContent = '';
+                document.getElementById('tokenExpirationLocal').textContent = '';
+                statusMessage.textContent = '';
+                document.getElementById('fltReqBox').style.display = 'none'; // Hide fltReqBox when clearing the dashboard
+                console.log('');
+            }
+
+            function handleEmptyReport(report, tableId) {
+                const table = document.getElementById(tableId);
+                if (!report || report.length === 0) {
+                    table.style.display = 'none';
+                } else {
+                    table.style.display = 'table';
+                }
+            }
+
+            // Attach the standalone function as the event listener
+            ddPremiums.addEventListener('change', changeMediaCompany);
+
+            // Drag and drop handlers
+            uploadBox.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadBox.classList.add('dragover');
+            });
+
+            uploadBox.addEventListener('dragleave', () => {
+                uploadBox.classList.remove('dragover');
+            });
+
+            uploadBox.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadBox.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'text/csv') {
+                    handleFile(file);
+                } else {
+                    alert('Please upload a valid CSV file.');
+                }
+            });
+
+            // Ensure ddTime change handler only fires if a media company is selected
+            ddTime.addEventListener('change', timeZoomChange);
+
+            async function timeZoomChange(e) {
+                if (!ddPremiums.value) {
+                    alert("Please select a Media Company first.");
+                    ddTime.value = "";
+                    return;
+                }
+
+
+                const selectedTime = e.target.value;
+                if (selectedTime) {
+                    const aMediaCoEnv = e.target.options[e.target.selectedIndex].text.split('_');
+                    const aClient = ddPremiums.value.split(':');
+
+                    const mediaCo = aMediaCoEnv[0];
+                    const environment = aMediaCoEnv[1];
+                    const clientId = aClient[0];
+                    const clientSecret = aClient[1];
+                    let accessToken = aClient[2];
+                    let expirationDateEpoch = aClient[3];
+
+                    const isTokenValid = accessToken && expirationDateEpoch && parseInt(expirationDateEpoch) > Date.now();
+
+                    if (!isTokenValid) {
+                        if (!accessToken) {
+                            statusMessage.textContent = "NO accessToken > Requesting new token...";
+                            console.log("NO accessToken > Requesting new token...");
+                        } else {
+                            statusMessage.textContent = "EXPIRE accessToken > Requesting new token...";
+                            console.log("EXPIRE accessToken > Requesting new token...");
+                        }
+
+                        try {
+                            const response2 = await fetch(`${host}/o/client/token?`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                },
+                                body: `grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`
+                            });
+                            const data2 = await response2.json();
+
+                            accessToken = data2.access_token;
+                            const createdAt = data2.created_at;
+                            const expiresIn = data2.expires_in;
+                            const expirationTimeUTC = new Date(createdAt + expiresIn * 1000).toUTCString();
+                            const expirationTimeLocal = new Date(createdAt + expiresIn * 1000).toString();
+                            expirationDateEpoch = createdAt + expiresIn * 1000;
+
+                            const updatedValue = `${clientId}:${clientSecret}:${accessToken}:${expirationDateEpoch}`;
+                            setLocalStorage(`${mediaCo}_${environment}`, updatedValue);
+                            e.target.options[e.target.selectedIndex].value = updatedValue;
+
+                            statusMessage.textContent = "accessToken refreshed!!!";
+                            console.log("accessToken refreshed!!!");
+                        } catch (error) {
+                            console.error('NO TOKEN SOUP FOR YOU:', error);
+                            statusMessage.textContent = "NO TOKEN SOUP FOR YOU.";
+                            dashboard.style.display = 'none';
+                            return;
+                        }
+                    } else {
+                        statusMessage.textContent = "accessToken still valid!";
+                        console.log("accessToken still valid!");
+
+                        console.log("_________________NOW LOAD " + selectedTime);
+                        BuildDashboard(selectedTime, accessToken, environment);
+                    }
+                } else {
+                    dashboard.style.display = 'none';
+                }
+            }
+
+            // DASHBOARD builder ( time, token, environment )
+            async function BuildDashboard(time, token, environment) {
+                const host = environment === 'staging'
+                    ? 'https://mgmt.auth-staging.adobe.com'
+                    : 'https://mgmt.auth.adobe.com';
+
+                const { start, end } = calculateTimeRange(time);
+
+                console.log("ESM TIME EXPERIMENTAL :: start = " + start + " END NOT SET [" + time + "]");
+                const appendTimeParams = (url) => {
+                    const urlObj = new URL(url, host);
+                    urlObj.searchParams.set('start', start);
+                    // urlObj.searchParams.set('end', end);
+                    return urlObj.toString();
+                };
+
+                _buildPodMediaCompany(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.MEDIA_COMPANY[time] + _FLTR_ESM), token);
+                _buildPodFraud(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.FRAUD[time] + _FLTR_ESM), token);
+                _buildPodEvents(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.EVENTS[time] + _FLTR_ESM), token);
+                _buildPodMvpds(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.MVPDS[time]) + _FLTR_ESM, token);
+
+
+                dashboard.style.display = 'flex';
+                console.log("____IS THIS OK?????______");
+            }
+
+            // Add this event listener after your existing event listeners
+            document.querySelector('#SLOW_MVPDS_TBL tbody').addEventListener('click', function (e) {
+                const row = e.target.closest('tr.data-row');
+                if (!row) return;
+
+                const isSelected = row.classList.contains('selected');
+                const currentSelected = this.querySelector('.selected');
+
+                // Toggle selection
+                if (currentSelected && currentSelected !== row) {
+                    currentSelected.classList.remove('selected');
+                }
+
+                row.classList.toggle('selected', !isSelected);
+            });
+
+            function getColor(percentage) {
+                const r = percentage < 50 ? 255 : Math.floor(255 - ((percentage - 50) * 5.1));
+                const g = percentage > 50 ? 255 : Math.floor(percentage * 5.1);
+                return `rgb(${r}, ${g}, 0)`;
+            }
+
+            function getRedColor(percentage) {
+                // Ensure the percentage is within the range [0, 100]
+                percentage = Math.max(0, Math.min(100, percentage));
+
+                // Calculate the red and green components
+                const r = 255; // Red is always at maximum
+                const g = Math.floor(255 * (1 - percentage / 100)); // Green decreases as percentage increases
+                const b = 0; // Blue is always 0 for yellow-to-red gradient
+
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+            // month number to name translator
+            function getMonthName(monthNumber) {
+                const date = new Date();
+                date.setMonth(monthNumber - 1);
+                return date.toLocaleDateString('en-US', { month: 'long' });
+            }
+
+
+            // Helper function to format datetime based on the selected time zoom
+            // function getFormattedDatetime(item, time) {
+            //   const { month, year, day, hour } = item;
+            //   const monthName = getMonthName(month);
+
+            //   switch (time) {
+            //     case "MONTH":
+            //       return `${monthName} ${year}`;
+            //     case "DAY":
+            //       return `${monthName} ${day}, ${year}`; // Format for DAY without hour
+            //     case "HOUR":
+            //       return hour ? `${monthName} ${day} ${hour}:00 ${year}` : `${monthName} ${day}, ${year}`; // Handle missing hour
+            //     case "MINUTE":
+            //       return hour ? `${monthName} ${day} ${hour}:${minute} ${year}` : `${monthName} ${day}, ${year}`; // Handle missing hour
+            //     default:
+            //       return `${monthName} ${year}`;
+            //   }
+            // }
+            function getFormattedDatetime(item, time) {
+                const { year, month, day, hour, minute } = item;
+
+                // Ensure year and month are always present
+                if (!year || !month) {
+                    console.error("Invalid item: year and month are required.");
+                    return "Invalid Date";
+                }
+
+                // Get the month name
+                const monthName = getMonthName(month);
+
+                // Construct the base date string (year and month are always present)
+                let datetime = `${monthName} ${year}`;
+
+                // Add day if available
+                if (day) {
+                    datetime = `${monthName} ${day}, ${year}`;
+                }
+
+                // Add hour if available
+                if (hour !== undefined) {
+                    datetime = `${monthName} ${day} ${hour}:00 ${year}`;
+                }
+
+                // Add minute if available
+                if (minute !== undefined) {
+                    datetime = `${monthName} ${day} ${hour}:${minute} ${year}`;
+                }
+
+                return datetime;
+            }
+
+            // MVPDS POD /////////////////////////////////////////////////////////////
+
+            function calculateAverages(report, time) {
+                const averages = {};
+
+                report.forEach(item => {
+                    const requestorId = item['requestor-id'];
+                    const mvpd = item['mvpd'];
+                    const authnAttempts = parseInt(item['authn-attempts']);
+                    const authzAttempts = parseInt(item['authz-attempts']);
+
+                    // Skip rows where authnAttempts or authzAttempts is 0
+                    if (authnAttempts === 0 || authzAttempts === 0) {
+                        return; // Skip this row
+                    }
+
+                    if (!averages[requestorId]) {
+                        averages[requestorId] = {
+                            authnAttempts: 0,
+                            authnSuccessful: 0,
+                            authzAttempts: 0,
+                            authzFailed: 0,
+                            authzLatency: 0,
+                            authzRejected: 0,
+                            authzSuccessful: 0,
+                            count: 0,
+                            mvpdAverages: {},
+                            earliestDateTime: null,
+                            latestDateTime: null
+                        };
+                    }
+
+                    // Add valid data to the requestor-id averages
+                    averages[requestorId].authnAttempts += authnAttempts;
+                    averages[requestorId].authnSuccessful += parseInt(item['authn-successful']);
+                    averages[requestorId].authzAttempts += authzAttempts;
+                    averages[requestorId].authzFailed += parseInt(item['authz-failed']);
+                    averages[requestorId].authzLatency += parseInt(item['authz-latency']);
+                    averages[requestorId].authzRejected += parseInt(item['authz-rejected']);
+                    averages[requestorId].authzSuccessful += parseInt(item['authz-successful']);
+                    averages[requestorId].count++;
+
+                    // Update earliest and latest date-time values
+                    const dateTime = getFormattedDatetime(item, time); // Use the centralized function
+
+                    if (dateTime) {
+                        if (!averages[requestorId].earliestDateTime || dateTime < averages[requestorId].earliestDateTime) {
+                            averages[requestorId].earliestDateTime = dateTime;
+                        }
+                        if (!averages[requestorId].latestDateTime || dateTime > averages[requestorId].latestDateTime) {
+                            averages[requestorId].latestDateTime = dateTime;
+                        }
+                    } else {
+                        console.warn('No valid date-time found for item:', item);
+                    }
+
+                    // Calculate per MVPD averages
+                    if (!averages[requestorId].mvpdAverages[mvpd]) {
+                        averages[requestorId].mvpdAverages[mvpd] = {
+                            authnAttempts: 0,
+                            authnSuccessful: 0,
+                            authzAttempts: 0,
+                            authzFailed: 0,
+                            authzLatency: 0,
+                            authzRejected: 0,
+                            authzSuccessful: 0,
+                            count: 0
+                        };
+                    }
+
+                    averages[requestorId].mvpdAverages[mvpd].authnAttempts += authnAttempts;
+                    averages[requestorId].mvpdAverages[mvpd].authnSuccessful += parseInt(item['authn-successful']);
+                    averages[requestorId].mvpdAverages[mvpd].authzAttempts += authzAttempts;
+                    averages[requestorId].mvpdAverages[mvpd].authzFailed += parseInt(item['authz-failed']);
+                    averages[requestorId].mvpdAverages[mvpd].authzLatency += parseInt(item['authz-latency']);
+                    averages[requestorId].mvpdAverages[mvpd].authzRejected += parseInt(item['authz-rejected']);
+                    averages[requestorId].mvpdAverages[mvpd].authzSuccessful += parseInt(item['authz-successful']);
+                    averages[requestorId].mvpdAverages[mvpd].count++;
+                });
+
+                // Calculate requestor-id averages
+                Object.keys(averages).forEach(requestorId => {
+                    const avg = averages[requestorId];
+
+                    avg.authnSuccessRate = avg.authnAttempts > 0 ? (avg.authnSuccessful / avg.authnAttempts) * 100 : 0;
+                    avg.authzSuccessRate = avg.authzAttempts > 0 ? (avg.authzSuccessful / avg.authzAttempts) * 100 : 0;
+                    avg.authzFailRate = avg.authzAttempts > 0 ? ((avg.authzFailed + avg.authzRejected) / avg.authzAttempts) * 100 : 0;
+                    avg.fraudRate = avg.authzAttempts > 0 ? (avg.authzRejected / avg.authzAttempts) * 100 : 0;
+                    avg.avgLatency = avg.count > 0 ? avg.authzLatency / avg.count : 0;
+
+                    // Calculate MVPD averages
+                    Object.keys(avg.mvpdAverages).forEach(mvpd => {
+                        const mvpdAvg = avg.mvpdAverages[mvpd];
+
+                        mvpdAvg.authnSuccessRate = mvpdAvg.authnAttempts > 0 ? (mvpdAvg.authnSuccessful / mvpdAvg.authnAttempts) * 100 : 0;
+                        mvpdAvg.authzSuccessRate = mvpdAvg.authzAttempts > 0 ? (mvpdAvg.authzSuccessful / mvpdAvg.authzAttempts) * 100 : 0;
+                        mvpdAvg.authzFailRate = mvpdAvg.authzAttempts > 0 ? ((mvpdAvg.authzFailed + mvpdAvg.authzRejected) / mvpdAvg.authzAttempts) * 100 : 0;
+                        mvpdAvg.fraudRate = mvpdAvg.authzAttempts > 0 ? (mvpdAvg.authzRejected / mvpdAvg.authzAttempts) * 100 : 0;
+                        mvpdAvg.avgLatency = mvpdAvg.count > 0 ? mvpdAvg.authzLatency / mvpdAvg.count : 0;
+                    });
+                });
+
+                return averages;
+            }
+
+
+
+
+            async function _buildPodMvpds(url, token) {
+                document.getElementById('mvpds-url').value = url;
+                progressElement(true);
+
+                try {
+                    const response = await fetchWithProgress(url, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }, progressElement);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const jsonResponse = await response.json();
+                    const report = jsonResponse.report;
+
+                    // Handle empty report
+                    handleEmptyReport(report, 'BASE_MVPDS_TBL');
+                    handleEmptyReport(report, 'SLOW_MVPDS_TBL');
+
+                    if (report && report.length > 0) {
+                        // Calculate averages for each requestor-id
+                        const averages = calculateAverages(report);
+
+                        // Populate BASE_MVPDS_TBL
+                        populateBaseMvpdsTable(averages);
+
+                        // Populate SLOW_MVPDS_TBL
+                        populateSlowMvpdsTable(report, averages);
+                    }
+                } catch (error) {
+                    console.error('Error fetching or parsing JSON:', error);
+                } finally {
+                    progressElement(false);
+                }
+            }
+
+            function populateBaseMvpdsTable(averages) {
+                const tbody = document.querySelector('#BASE_MVPDS_TBL tbody');
+                tbody.innerHTML = ''; // Clear previous contents
+
+                Object.keys(averages).forEach(requestorId => {
+                    const avg = averages[requestorId];
+                    const row = document.createElement('tr');
+
+                    // DATETIME only appears in second SLOW_MVPDS_TBL, but not the "NOW" baseline table
+                    const mtCell = document.createElement('td');
+                    mtCell.textContent = 'AVG by ' + ddTime.value;
+                    row.appendChild(mtCell);
+
+                    // Requestor ID
+                    const requestorCell = document.createElement('td');
+                    requestorCell.textContent = requestorId;
+                    requestorCell.setAttribute('align', 'center');
+                    row.appendChild(requestorCell);
+
+                    // ALL Ng: Total AVG of all daily MVPD authn-successful AVGs
+                    const ngPercentage = avg.authnSuccessRate || 0;
+
+                    // ALL Zg: Total AVG of all daily MVPD authz-successful AVGs
+                    const zgPercentage = avg.authzSuccessRate || 0;
+
+                    // ALL Zf: Total AVG of all daily MVPD authz-failed AVGs
+                    const zfPercentage = avg.authzFailRate || 0;
+
+                    // ALL ZLate: Total AVG of all daily MVPD authz-latency AVGs (in seconds)
+                    const zlateSeconds = (avg.avgLatency / 1000).toFixed(2);
+
+                    const cells = [
+                        createMeterCell(ngPercentage.toFixed(2), `authNg for ${requestorId}: ${ngPercentage.toFixed(2)}%`, getColor(ngPercentage)),
+                        createMeterCell(zgPercentage.toFixed(2), `authZg for ${requestorId}: ${zgPercentage.toFixed(2)}%`, getColor(zgPercentage)),
+                        createMeterCell(zfPercentage.toFixed(2), `authZf for ${requestorId}: ${zfPercentage.toFixed(2)}%`, getRedColor(zfPercentage)),
+                        zlateSeconds // ALL ZLate in seconds
+                    ];
+
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        if (typeof cell === 'object') {
+                            td.appendChild(cell);
+                        } else {
+                            td.textContent = cell;
+                            td.setAttribute('align', 'center');
+                        }
+                        row.appendChild(td);
+                    });
+
+                    tbody.appendChild(row);
+                });
+            }
+
+
+
+            function populateSlowMvpdsTable(report, averages) {
+                const tbody = document.querySelector('#SLOW_MVPDS_TBL tbody');
+                tbody.innerHTML = ''; // Clear previous contents
+
+                const groupedData = {};
+
+                // Group MVPDs by requestor-id and date range
+                report.forEach(item => {
+                    const requestorId = item['requestor-id'];
+                    const mvpd = item['mvpd'];
+                    const datetime = getFormattedDatetime(item, ddTime.value); // Use the centralized function
+
+                    if (!groupedData[requestorId]) {
+                        groupedData[requestorId] = {};
+                    }
+
+                    if (!groupedData[requestorId][datetime]) {
+                        groupedData[requestorId][datetime] = new Set();
+                    }
+
+                    // Add MVPD to the set for this requestor-id and date range
+                    groupedData[requestorId][datetime].add(mvpd);
+                });
+
+                // Iterate through each requestor-id and date range group
+                Object.keys(groupedData).forEach(requestorId => {
+                    Object.keys(groupedData[requestorId]).forEach(datetime => {
+                        const mvpdSet = groupedData[requestorId][datetime];
+                        const mvpdList = Array.from(mvpdSet);
+
+                        // Filter and sort MVPDs based on ZLate, FRD rate, and Zf rate
+                        const sortedMvpds = mvpdList
+                            .map(mvpd => {
+                                const mvpdAvg = averages[requestorId]?.mvpdAverages[mvpd];
+                                if (!mvpdAvg) {
+                                    console.warn(`No averages found for MVPD: ${mvpd} under requestor-id: ${requestorId}`);
+                                    return {
+                                        mvpd: mvpd,
+                                        authnSuccessRate: null,
+                                        authzSuccessRate: null,
+                                        authzFailRate: null,
+                                        fraudRate: null,
+                                        avgLatency: null
+                                    };
+                                }
+                                return {
+                                    mvpd: mvpd,
+                                    authnSuccessRate: mvpdAvg.authnSuccessRate || 0,
+                                    authzSuccessRate: mvpdAvg.authzSuccessRate || 0,
+                                    authzFailRate: mvpdAvg.authzFailRate || 0,
+                                    fraudRate: mvpdAvg.fraudRate || 0,
+                                    avgLatency: mvpdAvg.avgLatency || 0
+                                };
+                            })
+                            .filter(mvpdData => {
+                                if (!mvpdData) return false; // Skip null entries
+                                const avg = averages[requestorId];
+                                if (!avg) {
+                                    console.warn(`No averages found for requestor-id: ${requestorId}`);
+                                    return false;
+                                }
+                                return (
+                                    mvpdData.authnSuccessRate < (avg.authnSuccessRate || 0) ||
+                                    mvpdData.authzSuccessRate < (avg.authzSuccessRate || 0) ||
+                                    mvpdData.authzFailRate > (avg.authzFailRate || 0) ||
+                                    mvpdData.fraudRate > (avg.fraudRate || 0) ||
+                                    mvpdData.avgLatency > (avg.avgLatency || 0)
+                                );
+                            })
+                            .sort((a, b) => {
+                                if (b.avgLatency !== a.avgLatency) {
+                                    return b.avgLatency - a.avgLatency; // Sort by ZLate (descending)
+                                } else if (b.fraudRate !== a.fraudRate) {
+                                    return b.fraudRate - a.fraudRate; // Sort by FRD rate (descending)
+                                } else {
+                                    return b.authzFailRate - a.authzFailRate; // Sort by Zf rate (descending)
+                                }
+                            });
+
+                        // Add header row for this requestor-id and date range group
+                        const headerRow = document.createElement('tr');
+                        const headerCells = [
+                            `${datetime}`,
+                            `${requestorId.toUpperCase()}`,
+                            'low Ng',
+                            'low Zg',
+                            'high Zf',
+                            'high FRD',
+                            'high ZLate'
+                        ];
+
+                        headerCells.forEach((cellText, index) => {
+                            const headerCell = document.createElement('th');
+                            headerCell.textContent = cellText;
+                            if (index >= 2) {
+                                headerCell.title = "MVPD AVG('" + cellText + "') vs " + requestorId.toUpperCase() + " AVG('" + cellText + "') per " + ddTime.value
+                            }
+                            headerRow.appendChild(headerCell);
+                        });
+
+                        tbody.appendChild(headerRow);
+
+                        // Add MVPD rows for this requestor-id and date range group
+                        sortedMvpds.forEach(mvpdData => {
+
+                            // if (!mvpdData) return; // Skip null entries
+                            const row = document.createElement('tr');
+
+                            // MAKE NOTE OF BAD REQUESTOR-ID X MVPD DATA WITH A NOTE TR
+                            if (!mvpdData.authnSuccessRate) {
+                                // For error rows
+                                row.classList.add('data-row'); // HOVER HELPER
+
+                                // ERROR NOTICE
+                                const errCell = document.createElement('td');
+                                errCell.innerHTML = `<em><aside>Unable to compute: <b>${requestorId}</b> X <b>${mvpdData.mvpd}</b> traffic. <a href="javascript:void(0);" onclick="susReport('${requestorId}', '${mvpdData.mvpd}');" title="Run SUS.RPT on ${requestorId} X ${mvpdData.mvpd}">#sus.rpt</a></aside></em>`;
+                                errCell.colSpan = 7;
+                                row.appendChild(errCell);
+
+                            }
+                            else {
+                                // For normal data rows
+                                row.classList.add('data-row'); // HOVER HELPER
+
+                                // spacer DATETIME column
+                                const datetimeCell = document.createElement('td');
+                                datetimeCell.textContent = '';
+                                row.appendChild(datetimeCell);
+
+                                // MVPD Name Column
+                                const mvpdCell = document.createElement('td');
+                                // mvpdCell.textContent = mvpdData.mvpd;
+                                mvpdCell.innerHTML = `<a href="javascript:void(0);" onclick="susReport('${requestorId}', '${mvpdData.mvpd}')" title="Run SUS.RPT on ${requestorId} X ${mvpdData.mvpd}">${mvpdData.mvpd}</a>`;
+                                mvpdCell.classList.add('green');
+                                row.appendChild(mvpdCell);
+
+                                // LOW AUTHN Column
+                                const lowAuthnCell = document.createElement('td');
+                                if (mvpdData.authnSuccessRate < (averages[requestorId]?.authnSuccessRate || 0)) {
+                                    const meter = document.createElement('meter');
+                                    meter.value = mvpdData.authnSuccessRate;
+                                    meter.min = 0;
+                                    meter.max = 100;
+                                    meter.style.setProperty('--meter-color', getColor(mvpdData.authnSuccessRate)); // Apply color using getColor
+                                    meter.title = `${requestorId} ${mvpdData.mvpd} authnSuccessRate: ${mvpdData.authnSuccessRate.toFixed(2)}%`;
+                                    lowAuthnCell.appendChild(meter);
+                                } else {
+                                    lowAuthnCell.textContent = ''; // Empty cell if not LOW AUTHN
+                                }
+                                row.appendChild(lowAuthnCell);
+
+                                // LOW AUTHZ Column
+                                const lowAuthzCell = document.createElement('td');
+                                if (mvpdData.authzSuccessRate < (averages[requestorId]?.authzSuccessRate || 0)) {
+                                    const meter = document.createElement('meter');
+                                    meter.value = mvpdData.authzSuccessRate;
+                                    meter.min = 0;
+                                    meter.max = 100;
+                                    meter.style.setProperty('--meter-color', getColor(mvpdData.authzSuccessRate)); // Apply color using getColor
+                                    meter.title = `${requestorId} ${mvpdData.mvpd} authzSuccessRate: ${mvpdData.authzSuccessRate.toFixed(2)}%`;
+                                    lowAuthzCell.appendChild(meter);
+                                } else {
+                                    lowAuthzCell.textContent = ''; // Empty cell if not LOW AUTHZ
+                                }
+                                row.appendChild(lowAuthzCell);
+
+                                // HIGH Zf Column
+                                const highZfCell = document.createElement('td');
+                                if (mvpdData.authzFailRate > (averages[requestorId]?.authzFailRate || 0)) {
+                                    const meter = document.createElement('meter');
+                                    meter.value = mvpdData.authzFailRate;
+                                    meter.min = 0;
+                                    meter.max = 100;
+                                    meter.style.setProperty('--meter-color', getRedColor(mvpdData.authzFailRate)); // Apply red color
+                                    meter.title = `${requestorId} ${mvpdData.mvpd} authzFailRate: ${mvpdData.authzFailRate.toFixed(2)}%`;
+                                    highZfCell.appendChild(meter);
+                                } else {
+                                    highZfCell.textContent = ''; // Empty cell if not HIGH Zf
+                                }
+                                row.appendChild(highZfCell);
+
+                                // HIGH FRD Column
+                                const highFrdCell = document.createElement('td');
+                                if (mvpdData.fraudRate > (averages[requestorId]?.fraudRate || 0)) {
+                                    const meter = document.createElement('meter');
+                                    meter.value = mvpdData.fraudRate;
+                                    meter.min = 0;
+                                    meter.max = 100;
+                                    meter.style.setProperty('--meter-color', getRedColor(mvpdData.fraudRate)); // Apply red color
+                                    meter.title = `${requestorId} ${mvpdData.mvpd} fraudRate: ${mvpdData.fraudRate.toFixed(2)}%`;
+                                    highFrdCell.appendChild(meter);
+                                } else {
+                                    highFrdCell.textContent = ''; // Empty cell if not HIGH FRD
+                                }
+                                row.appendChild(highFrdCell);
+
+                                // HIGH ZLate Column
+                                const highLatencyCell = document.createElement('td');
+                                if (mvpdData.avgLatency > (averages[requestorId]?.avgLatency || 0)) {
+                                    const latencyInSeconds = (mvpdData.avgLatency / 1000).toFixed(2);
+                                    highLatencyCell.textContent = latencyInSeconds;
+                                    highLatencyCell.classList.add('green');
+                                } else {
+                                    highLatencyCell.textContent = ''; // Empty cell if not HIGH LATENCY
+                                }
+                                row.appendChild(highLatencyCell);
+                            }
+
+                            tbody.appendChild(row);
+
+                        });
+
+                    });
+
+                });
+
+            }
+
+
+            // / MVPDS POD /////////////////////////////////////////////////////////////
+
+            // Media-Company POD maker
+            async function _buildPodMediaCompany(url, token) {
+                document.getElementById('media-company-url').value = url;
+                progressElement(true);
+
+                try {
+                    const response = await fetchWithProgress(url, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }, progressElement);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const jsonResponse = await response.json();
+                    const report = jsonResponse.report;
+
+                    // Handle empty report
+                    handleEmptyReport(report, 'MEDIACO_TBL');
+
+                    if (report && report.length > 0) {
+                        const tbody = document.querySelector('#MEDIACO_TBL tbody');
+                        tbody.innerHTML = '';
+
+                        // Group data by requestor-id and datetime
+                        const groupedData = {};
+                        const uniqueRequestorIds = new Set();
+
+                        report.forEach(item => {
+                            const requestorId = item['requestor-id'];
+                            uniqueRequestorIds.add(requestorId);
+
+                            const datetime = getFormattedDatetime(item, ddTime.value); // Use the selected time zoom
+
+                            const key = `${requestorId}-${datetime}`; // Unique key for grouping
+                            if (!groupedData[key]) {
+                                groupedData[key] = {
+                                    requestorId: requestorId,
+                                    datetime: datetime,
+                                    authnAttempts: 0,
+                                    authnSuccessful: 0,
+                                    authzAttempts: 0,
+                                    authzFailed: 0,
+                                    authzRejected: 0,
+                                    authzSuccessful: 0,
+                                    mediaTokens: 0
+                                };
+                            }
+
+                            groupedData[key].authnAttempts += parseInt(item['authn-attempts']);
+                            groupedData[key].authnSuccessful += parseInt(item['authn-successful']);
+                            groupedData[key].authzAttempts += parseInt(item['authz-attempts']);
+                            groupedData[key].authzFailed += parseInt(item['authz-failed']);
+                            groupedData[key].authzRejected += parseInt(item['authz-rejected']);
+                            groupedData[key].authzSuccessful += parseInt(item['authz-successful']);
+                            groupedData[key].mediaTokens += parseInt(item['media-tokens']);
+                        });
+
+                        // Show fltReqBox only if there are 2 or more unique requestor-ids
+                        // OR if _FLTR_ESM contains requestor-ids to be un-selected
+                        if ((uniqueRequestorIds.size >= 2) || (_FLTR_ESM.includes("&requestor-id="))) {
+
+                            document.getElementById('fltReqBox').style.display = 'block';
+
+                            // Populate the fieldset with checkboxes for each unique requestor-id
+                            const fsRequestorIds = document.getElementById('fsRequestorIds');
+                            fsRequestorIds.innerHTML = '<legend>REQUESTOR-ID</legend>';
+                            uniqueRequestorIds.forEach(requestorId => {
+                                const span = document.createElement('span');
+                                const checkbox = document.createElement('input');
+                                checkbox.type = 'checkbox';
+                                checkbox.id = `reqId${requestorId}`;
+                                checkbox.name = 'requestor-ids';
+                                checkbox.value = requestorId;
+                                checkbox.checked = true;
+                                span.appendChild(checkbox);
+                                const label = document.createElement('label');
+                                label.htmlFor = `reqId${requestorId}`;
+                                label.textContent = requestorId;
+                                span.appendChild(label);
+                                fsRequestorIds.appendChild(span);
+                            });
+
+                            // Add the "GO FISH" link after the checkboxes
+                            const applyFilterLink = document.createElement('a');
+                            applyFilterLink.id = 'applyFilterLink';
+                            applyFilterLink.href = '#';
+                            applyFilterLink.title = 'Click to filter by requestor-id(s). Uncheck all to reset full requestor-id list';
+                            applyFilterLink.textContent = 'GO FISH';
+                            fsRequestorIds.appendChild(applyFilterLink);
+
+                            // Add event listener to the apply/remove filter link
+                            applyFilterLink.onclick = function (event) {
+                                event.preventDefault();
+
+                                // Get all checked checkboxes
+                                const checkboxes = document.querySelectorAll('#fsRequestorIds input[type="checkbox"]:checked');
+
+                                // Clear the global filter variable
+                                _FLTR_ESM = '';
+
+                                if (checkboxes.length > 0) {
+                                    // Build the _FLTR_ESM string based on checked checkboxes
+                                    _FLTR_ESM = '&' + Array.from(checkboxes)
+                                        .map(checkbox => `requestor-id=${checkbox.value}`)
+                                        .join('&');
+                                }
+
+                                // Log the filter state (for debugging)
+                                console.log("FILTER: " + _FLTR_ESM);
+
+                                const aMediaCoEnv = ddPremiums.options[ddPremiums.selectedIndex].text.split('_');
+                                const aClient = ddPremiums.value.split(':');
+                                const environment = aMediaCoEnv[1];
+                                let accessToken = aClient[2];
+
+                                // Rebuild the dashboard based on the filter state
+                                BuildDashboard(ddTime.value, accessToken, environment);
+                            };
+                        } else {
+                            // Hide fltReqBox if there is only one or no requestor-id
+                            document.getElementById('fltReqBox').style.display = 'none';
+                        }
+
+                        // Render rows for each requestor-id and datetime
+                        Object.keys(groupedData).forEach(key => {
+                            const data = groupedData[key];
+                            const row = document.createElement('tr');
+
+                            const ngPercentage = data.authnAttempts > 0 ? Math.round((data.authnSuccessful / data.authnAttempts) * 100) : 0;
+                            const zgPercentage = data.authzAttempts > 0 ? Math.round((data.authzSuccessful / data.authzAttempts) * 100) : 0;
+                            const zfPercentage = data.authzAttempts > 0 ? Math.round(((data.authzFailed + data.authzRejected) / data.authzAttempts) * 100) : 0;
+                            const frdPercentage = data.authzAttempts > 0 ? Math.round((data.authzRejected / data.authzAttempts) * 100) : 0;
+
+                            const cells = [
+                                data.datetime, // Restored DATETIME column
+                                data.requestorId,
+                                createMeterCell(ngPercentage.toFixed(2), `authNg for ${data.requestorId}: ${ngPercentage}%`, getColor(ngPercentage)),
+                                createMeterCell(zgPercentage.toFixed(2), `authZg for ${data.requestorId}: ${zgPercentage}%`, getColor(zgPercentage)),
+                                createMeterCell(zfPercentage.toFixed(2), `authZf for ${data.requestorId}: ${zfPercentage}%`, getRedColor(zfPercentage)),
+                                createMeterCell(frdPercentage.toFixed(2), `FRAUD RATE for ${data.requestorId}: ${frdPercentage}%`, getRedColor(frdPercentage)),
+                                data.mediaTokens.toLocaleString()
+                            ];
+
+                            cells.forEach(cell => {
+                                const td = document.createElement('td');
+                                if (typeof cell === 'object') {
+                                    td.appendChild(cell);
+                                } else {
+                                    td.textContent = cell;
+                                    td.setAttribute('align', 'center');
+                                }
+                                row.appendChild(td);
+                            });
+
+                            tbody.appendChild(row);
+                        });
+                    } else {
+                        // Hide fltReqBox if there is no data
+                        document.getElementById('fltReqBox').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error fetching or parsing JSON:', error);
+                } finally {
+                    progressElement(false);
+                }
+            }
+
+
+            // Helper function to create a meter cell
+            function createMeterCell(value, title, color) {
+                const meter = document.createElement('meter');
+                meter.value = value || 0;
+                meter.min = 0;
+                meter.max = 100;
+                meter.low = DEFAULT_THRESHOLD; // Set the low threshold
+                meter.high = 100; // Set the high threshold
+                meter.optimum = 75; // Set the optimum value
+                meter.title = title;
+                meter.style.setProperty('--meter-color', color); // Apply color using CSS variable
+                return meter;
+            }
+
+            // Helper function to determine meter color for FRD column (yellow to red gradient)
+            function getFraudMeterColor(percentage) {
+                const red = Math.round(255 * (percentage / 100));
+                const green = Math.round(255 * ((100 - percentage) / 100));
+                return `rgb(${red}, ${green}, 0)`;
+            }
+
+            // Helper function to determine meter color for other columns (existing logic)
+            function getMeterColor(percentage) {
+                if (percentage >= 90) return 'rgb(0, 255, 0)';
+                if (percentage >= 70) return 'rgb(76, 255, 0)';
+                if (percentage >= 50) return 'rgb(229, 255, 0)';
+                if (percentage >= 30) return 'rgb(255, 178, 0)';
+                return 'rgb(255, 71, 0)';
+            }
+
+            // FRAUD POD
+            async function _buildPodFraud(url, token) {
+                document.getElementById('fraud-url').value = url;
+                progressElement(true);
+
+                try {
+                    const response = await fetchWithProgress(url, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }, progressElement);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const jsonResponse = await response.json();
+                    const report = jsonResponse.report;
+
+                    // Handle empty report
+                    handleEmptyReport(report, 'FRAUD_TBL');
+
+                    if (report && report.length > 0) {
+                        // Extract unique requestor-ids
+                        const requestorIds = [...new Set(report.map(item => item['requestor-id']))];
+
+                        // Generate THEAD
+                        const thead = document.querySelector('#FRAUD_TBL thead');
+                        thead.innerHTML = '';
+
+                        const headerRow = document.createElement('tr');
+                        const headers = ['DATETIME', 'MVPD', 'COUNT', ...requestorIds];
+
+                        headers.forEach(header => {
+                            const th = document.createElement('th');
+                            th.textContent = header;
+                            headerRow.appendChild(th);
+                        });
+
+                        thead.appendChild(headerRow);
+
+                        // Generate TBODY
+                        const tbody = document.querySelector('#FRAUD_TBL tbody');
+                        tbody.innerHTML = '';
+
+                        // Group report items by datetime
+                        const groupedByDatetime = report.reduce((acc, item) => {
+                            let datetime = getFormattedDatetime(item, ddTime.value); // Use the selected time zoom
+
+                            if (!acc[datetime]) {
+                                acc[datetime] = {
+                                    mvpd: item.mvpd,
+                                    count: 0,
+                                    requestors: {}
+                                };
+                            }
+                            acc[datetime].count += parseInt(item.count);
+                            acc[datetime].requestors[item['requestor-id']] = (acc[datetime].requestors[item['requestor-id']] || 0) + parseInt(item.count);
+                            return acc;
+                        }, {});
+
+                        // Populate TBODY
+                        Object.entries(groupedByDatetime).forEach(([datetime, data]) => {
+                            const row = document.createElement('tr');
+
+                            const cells = [
+                                datetime,
+                                data.mvpd,
+                                data.count,
+                                ...requestorIds.map(requestorId => data.requestors[requestorId] || 0)
+                            ];
+
+                            cells.forEach(cell => {
+                                const td = document.createElement('td');
+                                if (typeof cell === 'number' && !isNaN(cell)) {
+                                    td.textContent = cell.toLocaleString();
+                                } else {
+                                    td.textContent = cell;
+                                }
+                                td.setAttribute('align', 'center');
+                                row.appendChild(td);
+                            });
+
+                            tbody.appendChild(row);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching or parsing JSON:', error);
+                } finally {
+                    progressElement(false);
+                }
+            }
+
+            // EVENTS POD ////////////////////////////////////
+            async function _buildPodEvents(url, token) {
+                document.getElementById('events-url').value = url;
+                progressElement(true);
+
+                try {
+                    const response = await fetchWithProgress(url, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }, progressElement);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const jsonResponse = await response.json();
+                    const report = jsonResponse.report;
+
+                    // Handle empty report
+                    handleEmptyReport(report, 'EVENTS_TBL');
+
+                    if (report && report.length > 0) {
+                        const tbody = document.querySelector('#EVENTS_TBL tbody');
+                        tbody.innerHTML = '';
+
+                        const eventsByRequestor = {};
+                        report.forEach(event => {
+                            const requestorId = event['requestor-id'];
+                            const eventName = event.event;
+                            const eventCount = parseInt(event.count);
+
+                            if (!eventsByRequestor[requestorId]) {
+                                eventsByRequestor[requestorId] = {};
+                            }
+
+                            if (!eventsByRequestor[requestorId][eventName]) {
+                                eventsByRequestor[requestorId][eventName] = 0;
+                            }
+
+                            eventsByRequestor[requestorId][eventName] += eventCount;
+                        });
+
+                        Object.keys(eventsByRequestor).forEach(requestorId => {
+                            const events = eventsByRequestor[requestorId];
+                            const eventCounts = Object.values(events);
+                            const minCount = Math.min(...eventCounts);
+                            const maxCount = Math.max(...eventCounts);
+
+                            const requestorRow = document.createElement('tr');
+                            const requestorHeader = document.createElement('th');
+                            requestorHeader.setAttribute('colspan', '3');
+                            requestorHeader.textContent = requestorId;
+                            requestorRow.appendChild(requestorHeader);
+                            tbody.appendChild(requestorRow);
+
+                            Object.entries(events).sort((a, b) => b[1] - a[1]).forEach(([eventName, totalCount]) => {
+                                const eventRow = document.createElement('tr');
+                                const tdMeter = document.createElement('td');
+
+                                const meter = document.createElement('meter');
+                                meter.value = totalCount;
+                                meter.min = minCount;
+                                meter.max = Math.max(totalCount, maxCount);
+                                // Apply appropriate class for coloring
+                                if (!eventName.endsWith('f') && !eventName.endsWith('g')) {
+                                    meter.classList.add('grey');
+                                } else {
+                                    meter.classList.add(eventName.endsWith('f') ? 'maroon' : 'green');
+                                }
+
+                                meter.title = requestorId + " " + eventName + " " + totalCount;
+                                tdMeter.appendChild(meter);
+
+                                const tdEventName = document.createElement('td');
+                                tdEventName.classList.add(eventName.endsWith('f') ? 'maroon' : 'green');
+                                tdEventName.textContent = eventName;
+
+                                const tdCount = document.createElement('td');
+                                tdCount.textContent = totalCount;
+                                tdCount.classList.add(eventName.endsWith('f') ? 'maroon' : 'green');
+
+                                eventRow.appendChild(tdEventName);
+                                eventRow.appendChild(tdMeter);
+                                eventRow.appendChild(tdCount);
+
+                                tbody.appendChild(eventRow);
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching or parsing JSON:', error);
+                } finally {
+                    progressElement(false);
+                }
+            }
+
+            function createMeterCell(value, title, color) {
+                const meter = document.createElement('meter');
+                meter.value = value || 0;
+                meter.min = 0;
+                meter.max = Math.max(value, 100);
+                meter.title = title;
+                meter.style.setProperty('--meter-color', color);
+                return meter;
+            }
+            // THEMEAT //////////////////////////////////////////
+
+
+
+            /* SUS.RPT*/
+
+            // #sus.rpt click handler  
+            async function susReport(requestorId, mvpdId) {
+
+                if (!requestorId || !mvpdId) {
+                    statusMessage.textContent = "Please provide both Requestor-Id and MVPD ID.";
+                    return;
+                }
+
+                // Set the global variables
+                currentRequestorId = requestorId;
+                currentMvpdId = mvpdId;
+
+
+                console.log("DOCTITLE in susreport...........");
+                document.title = `${currentRequestorId}_${currentMvpdId}`;
+
+                // Check if the requestor-id is already cached
+                if (requestorConfigCache[requestorId]) {
+                    console.log("GOT IT! -- ", requestorId);
+                    const data = requestorConfigCache[requestorId];
+                    displayMvpdInfo(data, requestorId, mvpdId);
+                    return;
+                }
+
+                const apiUrl = `https://api.auth.adobe.com/api/v1/config/${requestorId}?format=json`;
+
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    // Cache the response for this requestor-id
+                    requestorConfigCache[requestorId] = data;
+
+                    // Display the MVPD info
+                    displayMvpdInfo(data, requestorId, mvpdId);
+                } catch (error) {
+                    console.error('ERROR building susReport :', error);
+                    statusMessage.textContent = `ERROR building susReport : ${error.message}`;
+                }
+            }
+
+
+            function displayMvpdInfo(data, requestorId, mvpdId) {
+                try {
+                    // Ensure `data.requestor.mvpds.mvpd` exists and is an array
+                    if (!data.requestor || !data.requestor.mvpds || !Array.isArray(data.requestor.mvpds.mvpd)) {
+                        throw new Error('Invalid API response structure: MVPDs data not found.');
+                    }
+
+                    // Find the MVPD object in the response
+                    const mvpd = data.requestor.mvpds.mvpd.find(m => m.id?.value === mvpdId);
+                    if (!mvpd) {
+                        throw new Error(`MVPD with ID "${mvpdId}" not found in the response.`);
+                    }
+
+                    // Extract displayName and logoUrl
+                    const displayName = mvpd.displayName?.value || "Unknown MVPD";
+                    const logoUrl = mvpd.logoUrl?.value || "";
+
+                    // GO AHEAD AND PULL DATA, WE FOUND A MATCH!
+
+                    // get MVPD info from ESM
+                    _buildSusRpt(requestorId, mvpdId);
+
+                    // Update the popup content
+                    document.getElementById('mvpdDisplayName').textContent = displayName;
+                    document.getElementById('mvpdLogo').src = logoUrl;
+                    document.getElementById('mvpdLogo').title = displayName;
+
+                    // Display selected
+                    document.getElementById('reqIdDisplay').textContent = requestorId;
+
+
+                    // Show the popup
+                    document.getElementById('popupOverlay').style.display = 'flex';
+
+                    // Clear any previous error messages
+                    statusMessage.textContent = "";
+                } catch (error) {
+                    console.error('Error displaying MVPD info:', error);
+                    statusMessage.textContent = `Error displaying MVPD info: ${error.message}`;
+                }
+            }
+
+            // Sus Report ESM pullerZ
+            async function _buildSusRpt(requestorId, mvpd) {
+                console.log("Building SUS.RPT for:", requestorId, mvpd);
+                progressElement(true);
+                const aMediaCoEnv = ddPremiums.value.split('_');
+                const aClient = ddPremiums.value.split(':');
+                const environment = aMediaCoEnv[1];
+                let token = aClient[2];
+
+                const host = environment === 'staging'
+                    ? 'https://mgmt.auth-staging.adobe.com'
+                    : 'https://mgmt.auth.adobe.com';
+
+                const { start, end } = calculateTimeRange('HOUR'); // NOTE: HOUR lookback never seems to return data
+                const makeUrl = (url) => {
+                    const urlObj = new URL(url, host);
+                    return urlObj.toString();
+                };
+
+                const url = makeUrl("/esm/v3/media-company/year/month/day/hour?requestor-id=" + requestorId + "&mvpd=" + mvpd);
+
+                // Set HOUR URL
+                document.getElementById('susTBL1-url').value = url;
+
+                try {
+                    const response = await fetchWithProgress(url, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }, progressElement);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const jsonResponse = await response.json();
+                    const report = jsonResponse.report;
+
+                    // Handle empty report
+                    handleEmptyReport(report, 'susTBL1');
+
+                    if (report && report.length > 0) {
+                        // Sort the report by media-tokens (PLAY_REQUESTS) in descending order
+                        report.sort((a, b) => {
+                            const aTokens = parseInt(a['media-tokens'] || 0);
+                            const bTokens = parseInt(b['media-tokens'] || 0);
+                            return bTokens - aTokens;
+                        });
+
+                        const tbody = document.querySelector('#susTBL1 tbody');
+                        tbody.innerHTML = ''; // Clear previous contents
+
+                        report.forEach(item => {
+                            const row = document.createElement('tr');
+
+                            // Extract relevant data from the report item
+                            const datetime = getFormattedDatetime(item, 'HOUR'); // Use the centralized function for datetime formatting
+                            const requestorId = item['requestor-id'];
+                            const authnAttempts = parseInt(item['authn-attempts']);
+                            const authnSuccessful = parseInt(item['authn-successful']);
+                            const authzAttempts = parseInt(item['authz-attempts']);
+                            const authzFailed = parseInt(item['authz-failed']);
+                            const authzRejected = parseInt(item['authz-rejected']);
+                            const authzSuccessful = parseInt(item['authz-successful']);
+                            const mediaTokens = parseInt(item['media-tokens']);
+
+                            // Calculate success rates
+                            const ngPercentage = authnAttempts > 0 ? Math.round((authnSuccessful / authnAttempts) * 100) : 0;
+                            const zgPercentage = authzAttempts > 0 ? Math.round((authzSuccessful / authzAttempts) * 100) : 0;
+                            const zfPercentage = authzAttempts > 0 ? Math.round(((authzFailed + authzRejected) / authzAttempts) * 100) : 0;
+                            const frdPercentage = authzAttempts > 0 ? Math.round((authzRejected / authzAttempts) * 100) : 0;
+
+                            // Create table cells
+                            const cells = [
+                                datetime, // DATETIME column
+                                requestorId, // REQUESTOR-ID column
+                                createMeterCell(ngPercentage.toFixed(2), `authNg for ${requestorId}: ${ngPercentage}%`, getColor(ngPercentage)), // Ng column
+                                createMeterCell(zgPercentage.toFixed(2), `authZg for ${requestorId}: ${zgPercentage}%`, getColor(zgPercentage)), // Zg column
+                                createMeterCell(zfPercentage.toFixed(2), `authZf for ${requestorId}: ${zfPercentage}%`, getRedColor(zfPercentage)), // Zf column
+                                createMeterCell(frdPercentage.toFixed(2), `FRAUD RATE for ${requestorId}: ${frdPercentage}%`, getRedColor(frdPercentage)), // FRD column
+                                mediaTokens.toLocaleString()
+                            ];
+
+                            // Append cells to the row
+                            cells.forEach(cell => {
+                                const td = document.createElement('td');
+                                if (typeof cell === 'object') {
+                                    td.appendChild(cell);
+                                } else {
+                                    td.textContent = cell;
+                                    td.setAttribute('align', 'center');
+                                }
+                                row.appendChild(td);
+                            });
+
+                            // Append the row to the table body
+                            tbody.appendChild(row);
+                        });
+
+                        // Build the second part of the SUS.RPT
+                        _buildSusRpt2(requestorId, mvpd);
+                    } else {
+                        // Handle empty report
+                        handleEmptyReport(report, 'susTBL1');
+                    }
+                } catch (error) {
+                    console.error('Error fetching or parsing JSON:', error);
+                } finally {
+                    progressElement(false);
+                }
+            }
+
+
+
+            // Handler for sdkMvpdTBL
+            function handleSdkMvpdTBL(report, tbody) {
+                const groupedData = report.reduce((acc, item) => {
+                    const platform = item.platform;
+                    const sdk = `${item.nsdk}-${item['nsdk-version']}`; // Correctly access nsdk-version
+                    const key = `${platform}-${sdk}`;
+
+                    if (!acc[key]) {
+                        acc[key] = {
+                            platform: platform,
+                            sdk: sdk,
+                            authnAttempts: 0,
+                            authnSuccessful: 0,
+                            authzAttempts: 0,
+                            authzFailed: 0,
+                            authzRejected: 0,
+                            authzSuccessful: 0,
+                            mediaTokens: 0,
+                            year: item.year,
+                            month: item.month,
+                            day: item.day,
+                            requestorId: item['requestor-id'] // Include requestor-id
+                        };
+                    }
+
+                    acc[key].authnAttempts += parseInt(item['authn-attempts']);
+                    acc[key].authnSuccessful += parseInt(item['authn-successful']);
+                    acc[key].authzAttempts += parseInt(item['authz-attempts']);
+                    acc[key].authzFailed += parseInt(item['authz-failed']);
+                    acc[key].authzRejected += parseInt(item['authz-rejected']);
+                    acc[key].authzSuccessful += parseInt(item['authz-successful']);
+                    acc[key].mediaTokens += parseInt(item['media-tokens']);
+
+                    return acc;
+                }, {});
+
+                const sortedData = Object.values(groupedData).sort((a, b) => b.mediaTokens - a.mediaTokens);
+
+                sortedData.forEach(data => {
+                    const row = document.createElement('tr');
+
+                    const datetime = `${getMonthName(data.month)} ${data.day}, ${data.year}`;
+                    const ngPercentage = data.authnAttempts > 0 ? Math.round((data.authnSuccessful / data.authnAttempts) * 100) : 0;
+                    const zgPercentage = data.authzAttempts > 0 ? Math.round((data.authzSuccessful / data.authzAttempts) * 100) : 0;
+                    const zfPercentage = data.authzAttempts > 0 ? Math.round(((data.authzFailed + data.authzRejected) / data.authzAttempts) * 100) : 0;
+                    const frdPercentage = data.authzAttempts > 0 ? Math.round((data.authzRejected / data.authzAttempts) * 100) : 0;
+
+                    const cells = [
+                        datetime,
+                        data.requestorId, // Correctly map requestor-id
+                        data.platform,
+                        data.sdk, // SDK column with concatenated nsdk and nsdk-version
+                        createMeterCell(ngPercentage.toFixed(2), `authNg for ${data.platform}-${data.sdk}: ${ngPercentage}%`, getColor(ngPercentage)),
+                        createMeterCell(zgPercentage.toFixed(2), `authZg for ${data.platform}-${data.sdk}: ${zgPercentage}%`, getColor(zgPercentage)),
+                        createMeterCell(zfPercentage.toFixed(2), `authZf for ${data.platform}-${data.sdk}: ${zfPercentage}%`, getRedColor(zfPercentage)),
+                        createMeterCell(frdPercentage.toFixed(2), `FRAUD RATE for ${data.platform}-${data.sdk}: ${frdPercentage}%`, getRedColor(frdPercentage)),
+                        data.mediaTokens.toLocaleString()
+                    ];
+
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        if (typeof cell === 'object') {
+                            td.appendChild(cell);
+                        } else {
+                            td.textContent = cell;
+                            td.setAttribute('align', 'center');
+                        }
+                        row.appendChild(td);
+                    });
+
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Refactored _buildSusRpt2 function
+            async function _buildSusRpt2(requestorId, mvpd) {
+                progressElement(true);
+                const aMediaCoEnv = ddPremiums.value.split('_');
+                const aClient = ddPremiums.value.split(':');
+                const environment = aMediaCoEnv[1];
+                let token = aClient[2];
+
+                const host = environment === 'staging'
+                    ? 'https://mgmt.auth-staging.adobe.com'
+                    : 'https://mgmt.auth.adobe.com';
+
+                const urls = [
+                    { id: 'todayTBL', url: `/esm/v3/media-company/year/month/day?requestor-id=${requestorId}&mvpd=${mvpd}&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens` },
+                    { id: 'dcTBL', url: `/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/device/dc?requestor-id=${requestorId}&mvpd=${mvpd}&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens` },
+                    { id: 'eventsMvpdTBL', url: `/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id=${requestorId}&mvpd=${mvpd}&mvpd!=None&reason` },
+                    { id: 'sdkMvpdTBL', url: `/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version?requestor-id=${requestorId}&mvpd=${mvpd}&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens` },
+                    { id: 'sdkDcTBL', url: `/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc?requestor-id=${requestorId}&mvpd=${mvpd}` }
+                ];
+
+                try {
+                    for (const { id, url } of urls) {
+                        const fullUrl = new URL(url, host).toString();
+                        document.getElementById(id + '-url').value = fullUrl;
+
+                        const response = await fetchWithProgress(fullUrl, {
+                            method: 'GET',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        }, progressElement);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const jsonResponse = await response.json();
+                        const report = jsonResponse.report;
+
+                        handleEmptyReport(report, id);
+
+                        if (report && report.length > 0) {
+                            const tbody = document.querySelector(`#${id} tbody`);
+                            tbody.innerHTML = '';
+
+                            switch (id) {
+                                case 'eventsMvpdTBL':
+                                    handleEventsMvpdTBL(report, tbody);
+                                    break;
+                                case 'dcTBL':
+                                    handleDcTBL(report, tbody);
+                                    break;
+                                case 'todayTBL':
+                                    handleTodayTBL(report, tbody);
+                                    break;
+                                case 'sdkMvpdTBL':
+                                    handleSdkMvpdTBL(report, tbody);
+                                    break;
+                                case 'sdkDcTBL':
+                                    handleSdkDcTBL(report, tbody);
+                                    break;
+                                default:
+                                    handleDefaultTable(report, tbody, id);
+                                    break;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching or parsing JSON:', error);
+                } finally {
+                    progressElement(false);
+                }
+            }
+
+
+            // Handler for eventsMvpdTBL
+            function handleEventsMvpdTBL(report, tbody) {
+                const groupedData = report.reduce((acc, item) => {
+                    const key = `${item['requestor-id']}-${item.event}-${item.reason}`;
+                    if (!acc[key]) {
+                        acc[key] = {
+                            requestorId: item['requestor-id'],
+                            event: item.event,
+                            reason: item.reason,
+                            count: 0,
+                            year: item.year,
+                            month: item.month,
+                            day: item.day
+                        };
+                    }
+                    acc[key].count += parseInt(item.count);
+                    return acc;
+                }, {});
+
+                const sortedData = Object.values(groupedData).sort((a, b) => b.count - a.count);
+
+                sortedData.forEach(data => {
+                    const row = document.createElement('tr');
+                    const datetime = `${getMonthName(data.month)} ${data.day}, ${data.year}`;
+                    const cells = [
+                        datetime,
+                        data.requestorId,
+                        data.event,
+                        data.reason,
+                        data.count.toLocaleString()
+                    ];
+
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        td.setAttribute('align', 'center');
+                        row.appendChild(td);
+                    });
+
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Handler for dcTBL
+            function handleDcTBL(report, tbody) {
+                const groupedByDCAndDevice = report.reduce((acc, item) => {
+                    const dc = item.dc;
+                    const device = item.device;
+                    const key = `${dc}-${device}`;
+
+                    if (!acc[key]) {
+                        acc[key] = {
+                            authnAttempts: 0,
+                            authnSuccessful: 0,
+                            authzAttempts: 0,
+                            authzFailed: 0,
+                            authzRejected: 0,
+                            authzSuccessful: 0,
+                            mediaTokens: 0,
+                            count: 0,
+                            year: item.year,
+                            month: item.month,
+                            day: item.day,
+                            dc: dc,
+                            device: device
+                        };
+                    }
+
+                    acc[key].authnAttempts += parseInt(item['authn-attempts']);
+                    acc[key].authnSuccessful += parseInt(item['authn-successful']);
+                    acc[key].authzAttempts += parseInt(item['authz-attempts']);
+                    acc[key].authzFailed += parseInt(item['authz-failed']);
+                    acc[key].authzRejected += parseInt(item['authz-rejected']);
+                    acc[key].authzSuccessful += parseInt(item['authz-successful']);
+                    acc[key].mediaTokens += parseInt(item['media-tokens']);
+                    acc[key].count++;
+
+                    return acc;
+                }, {});
+
+                // Convert the grouped data into an array and sort by mediaTokens in descending order
+                const sortedData = Object.keys(groupedByDCAndDevice)
+                    .map(key => groupedByDCAndDevice[key])
+                    .sort((a, b) => b.mediaTokens - a.mediaTokens); // Sort by mediaTokens descending
+
+                sortedData.forEach(data => {
+                    const row = document.createElement('tr');
+                    const ngPercentage = data.authnAttempts > 0 ? Math.round((data.authnSuccessful / data.authnAttempts) * 100 ): 0;
+                    const zgPercentage = data.authzAttempts > 0 ? Math.round((data.authzSuccessful / data.authzAttempts) * 100 ): 0;
+                    const zfPercentage = data.authzAttempts > 0 ? Math.round(((data.authzFailed + data.authzRejected) / data.authzAttempts) * 100 ): 0;
+                    const frdPercentage = data.authzAttempts > 0 ? Math.round((data.authzRejected / data.authzAttempts) * 100 ): 0;
+                    const datetime = `${getMonthName(data.month)} ${data.day}, ${data.year}`;
+
+                    const cells = [
+                        datetime,
+                        data.dc,
+                        data.device,
+                        createMeterCell(ngPercentage.toFixed(2), `authNg for ${data.dc}-${data.device}: ${ngPercentage}%`, getColor(ngPercentage)),
+                        createMeterCell(zgPercentage.toFixed(2), `authZg for ${data.dc}-${data.device}: ${zgPercentage}%`, getColor(zgPercentage)),
+                        createMeterCell(zfPercentage.toFixed(2), `authZf for ${data.dc}-${data.device}: ${zfPercentage}%`, getRedColor(zfPercentage)),
+                        createMeterCell(frdPercentage.toFixed(2), `FRAUD RATE for ${data.dc}-${data.device}: ${frdPercentage}%`, getRedColor(frdPercentage)),
+                        data.mediaTokens.toLocaleString()
+                    ];
+
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        if (typeof cell === 'object') {
+                            td.appendChild(cell);
+                        } else {
+                            td.textContent = cell;
+                            td.setAttribute('align', 'center');
+                        }
+                        row.appendChild(td);
+                    });
+
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Handler for todayTBL
+            function handleTodayTBL(report, tbody) {
+                const sortedReport = report.sort((a, b) => {
+                    const aTokens = parseInt(a['media-tokens'] || 0);
+                    const bTokens = parseInt(b['media-tokens'] || 0);
+                    return bTokens - aTokens;
+                });
+
+                sortedReport.forEach(item => {
+                    const row = document.createElement('tr');
+                    const datetime = getFormattedDatetime(item, 'DAY');
+                    const requestorId = item['requestor-id'];
+                    const authnAttempts = parseInt(item['authn-attempts']);
+                    const authnSuccessful = parseInt(item['authn-successful']);
+                    const authzAttempts = parseInt(item['authz-attempts']);
+                    const authzFailed = parseInt(item['authz-failed']);
+                    const authzRejected = parseInt(item['authz-rejected']);
+                    const authzSuccessful = parseInt(item['authz-successful']);
+                    const mediaTokens = parseInt(item['media-tokens']);
+
+                    const ngPercentage = authnAttempts > 0 ? Math.round((authnSuccessful / authnAttempts) * 100) : 0;
+                    const zgPercentage = authzAttempts > 0 ? Math.round((authzSuccessful / authzAttempts) * 100) : 0;
+                    const zfPercentage = authzAttempts > 0 ? Math.round(((authzFailed + authzRejected) / authzAttempts) * 100) : 0;
+                    const frdPercentage = authzAttempts > 0 ? Math.round((authzRejected / authzAttempts) * 100) : 0;
+
+                    const cells = [
+                        datetime,
+                        requestorId,
+                        createMeterCell(ngPercentage.toFixed(2), `authNg for ${requestorId}: ${ngPercentage}%`, getColor(ngPercentage)),
+                        createMeterCell(zgPercentage.toFixed(2), `authZg for ${requestorId}: ${zgPercentage}%`, getColor(zgPercentage)),
+                        createMeterCell(zfPercentage.toFixed(2), `authZf for ${requestorId}: ${zfPercentage}%`, getRedColor(zfPercentage)),
+                        createMeterCell(frdPercentage.toFixed(2), `FRAUD RATE for ${requestorId}: ${frdPercentage}%`, getRedColor(frdPercentage)),
+                        mediaTokens.toLocaleString()
+                    ];
+
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        if (typeof cell === 'object') {
+                            td.appendChild(cell);
+                        } else {
+                            td.textContent = cell;
+                            td.setAttribute('align', 'center');
+                        }
+                        row.appendChild(td);
+                    });
+
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Default handler for other tables
+            function handleDefaultTable(report, tbody, id) {
+                const sortedReport = report.sort((a, b) => {
+                    const aTokens = parseInt(a['media-tokens'] || 0);
+                    const bTokens = parseInt(b['media-tokens'] || 0);
+                    return bTokens - aTokens;
+                });
+
+                sortedReport.forEach(item => {
+                    const row = document.createElement('tr');
+                    const datetime = getFormattedDatetime(item, id === 'todayTBL' ? 'DAY' : 'HOUR');
+                    const requestorId = item['requestor-id'];
+                    const authnAttempts = parseInt(item['authn-attempts']);
+                    const authnSuccessful = parseInt(item['authn-successful']);
+                    const authzAttempts = parseInt(item['authz-attempts']);
+                    const authzFailed = parseInt(item['authz-failed']);
+                    const authzRejected = parseInt(item['authz-rejected']);
+                    const authzSuccessful = parseInt(item['authz-successful']);
+                    const mediaTokens = parseInt(item['media-tokens']);
+
+                    const ngPercentage = authnAttempts > 0 ? Math.round((authnSuccessful / authnAttempts) * 100) : 0;
+                    const zgPercentage = authzAttempts > 0 ? Math.round((authzSuccessful / authzAttempts) * 100) : 0;
+                    const zfPercentage = authzAttempts > 0 ? Math.round(((authzFailed + authzRejected) / authzAttempts) * 100) : 0;
+                    const frdPercentage = authzAttempts > 0 ? Math.round((authzRejected / authzAttempts) * 100) : 0;
+
+                    const cells = [
+                        datetime,
+                        requestorId,
+                        createMeterCell(ngPercentage.toFixed(2), `authNg for ${requestorId}: ${ngPercentage}%`, getColor(ngPercentage)),
+                        createMeterCell(zgPercentage.toFixed(2), `authZg for ${requestorId}: ${zgPercentage}%`, getColor(zgPercentage)),
+                        createMeterCell(zfPercentage.toFixed(2), `authZf for ${requestorId}: ${zfPercentage}%`, getRedColor(zfPercentage)),
+                        createMeterCell(frdPercentage.toFixed(2), `FRAUD RATE for ${requestorId}: ${frdPercentage}%`, getRedColor(frdPercentage)),
+                        mediaTokens.toLocaleString()
+                    ];
+
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        if (typeof cell === 'object') {
+                            td.appendChild(cell);
+                        } else {
+                            td.textContent = cell;
+                            td.setAttribute('align', 'center');
+                        }
+                        row.appendChild(td);
+                    });
+
+                    tbody.appendChild(row);
+                });
+            }
+
+
+            function handleSdkDcTBL(report, tbody) {
+                const groupedData = report.reduce((acc, item) => {
+                    const platform = item.platform;
+                    const sdk = `${item.nsdk}-${item['nsdk-version']}`;
+                    const dc = item.dc;
+                    const key = `${platform}-${sdk}-${dc}`;
+
+                    if (!acc[key]) {
+                        acc[key] = {
+                            platform: platform,
+                            sdk: sdk,
+                            dc: dc,
+                            authnAttempts: 0,
+                            authnSuccessful: 0,
+                            authzAttempts: 0,
+                            authzFailed: 0,
+                            authzRejected: 0,
+                            authzSuccessful: 0,
+                            mediaTokens: 0,
+                            uniqueAccounts: 0,
+                            uniqueSessions: 0,
+                            year: item.year,
+                            month: item.month,
+                            day: item.day,
+                            requestorId: item['requestor-id']
+                        };
+                    }
+
+                    acc[key].authnAttempts += parseInt(item['authn-attempts']);
+                    acc[key].authnSuccessful += parseInt(item['authn-successful']);
+                    acc[key].authzAttempts += parseInt(item['authz-attempts']);
+                    acc[key].authzFailed += parseInt(item['authz-failed']);
+                    acc[key].authzRejected += parseInt(item['authz-rejected']);
+                    acc[key].authzSuccessful += parseInt(item['authz-successful']);
+                    acc[key].mediaTokens += parseInt(item['media-tokens']);
+                    acc[key].uniqueAccounts += parseInt(item['unique-accounts']);
+                    acc[key].uniqueSessions += parseInt(item['unique-sessions']);
+
+                    return acc;
+                }, {});
+
+                const sortedData = Object.values(groupedData).sort((a, b) => b.mediaTokens - a.mediaTokens);
+
+                sortedData.forEach(data => {
+                    const row = document.createElement('tr');
+
+                    const datetime = `${getMonthName(data.month)} ${data.day}, ${data.year}`;
+                    const ngPercentage = data.authnAttempts > 0 ? Math.round((data.authnSuccessful / data.authnAttempts) * 100) : 0;
+                    const zgPercentage = data.authzAttempts > 0 ? Math.round((data.authzSuccessful / data.authzAttempts) * 100) : 0;
+                    const zfPercentage = data.authzAttempts > 0 ? Math.round(((data.authzFailed + data.authzRejected) / data.authzAttempts) * 100) : 0;
+                    const frdPercentage = data.authzAttempts > 0 ? Math.round((data.authzRejected / data.authzAttempts) * 100) : 0;
+
+                    const cells = [
+                        datetime,
+                        data.dc,
+                        data.requestorId,
+                        data.platform,
+                        data.sdk,
+                        createMeterCell(ngPercentage.toFixed(2), `authNg for ${data.platform}-${data.sdk}: ${ngPercentage}%`, getColor(ngPercentage)),
+                        createMeterCell(zgPercentage.toFixed(2), `authZg for ${data.platform}-${data.sdk}: ${zgPercentage}%`, getColor(zgPercentage)),
+                        createMeterCell(zfPercentage.toFixed(2), `authZf for ${data.platform}-${data.sdk}: ${zfPercentage}%`, getRedColor(zfPercentage)),
+                        createMeterCell(frdPercentage.toFixed(2), `FRAUD RATE for ${data.platform}-${data.sdk}: ${frdPercentage}%`, getRedColor(frdPercentage)),
+                        data.mediaTokens.toLocaleString(),
+                        data.uniqueAccounts.toLocaleString(),
+                        data.uniqueSessions.toLocaleString()
+                    ];
+
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        if (typeof cell === 'object') {
+                            td.appendChild(cell);
+                        } else {
+                            td.textContent = cell;
+                            td.setAttribute('align', 'center');
+                        }
+                        row.appendChild(td);
+                    });
+
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Function to close the popup
+            function closePopup() {
+                clearSusRptTables();
+
+                console.log("DOTITLE closepopup >>>>");
+                document.title = appTitle;
+
+                const popupOverlay = document.getElementById('popupOverlay');
+                popupOverlay.style.display = 'none';
+            }
+
+            // Close the popup when clicking outside the content
+            window.addEventListener('click', (event) => {
+                const popupOverlay = document.getElementById('popupOverlay');
+                if (event.target === popupOverlay) {
+                    closePopup();
+                }
+            });
+
+            window.addEventListener("beforeprint", (event) => {
+
+                console.log("DOCTITLE in beforeprint...........");
+                document.title = `${currentRequestorId}_${currentMvpdId}`;
+            });
+
+            window.addEventListener("afterprint", (event) => {
+                // document.title = appTitle;
+                console.log("ADD THE WRAPPER BACK???")
+            });
+
+            function saveAsPDF() {
+                // Get the content from the element with ID 'susRptContents'
+                const content = document.getElementById('susRptContents').innerHTML;
+
+                // Create a new iframe element
+                const iframe = document.createElement('iframe');
+
+                // Set the iframe's width and height to 100% to ensure it fits the content
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none'; // Optional: Remove border for a cleaner look
+
+                // Wait for the iframe to load before manipulating its content
+                iframe.onload = function () {
+                    const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+
+                    // Copy all styles from the parent document to the iframe
+                    const parentStyles = document.querySelectorAll('link[rel="stylesheet"], style');
+                    parentStyles.forEach(style => {
+                        const clone = style.cloneNode(true);
+                        iframeDocument.head.appendChild(clone);
+                    });
+
+                    // Set the innerHTML of the iframe's body to the content
+                    iframeDocument.body.innerHTML = content;
+
+                    // Reset the height and overflow of the #susRptContents element
+                    const susRptContents = iframeDocument.getElementById('susRptContents');
+                    if (susRptContents) {
+                        susRptContents.style.height = 'auto';
+                        susRptContents.style.overflow = 'visible';
+                    }
+
+                    // Print the iframe's content
+                    iframe.contentWindow.print();
+
+                    // Listen for the afterprint event to remove the iframe and clear table contents
+                    iframe.contentWindow.onafterprint = function () {
+                        document.body.removeChild(iframe);
+                    };
+                };
+
+                // Append the iframe to the body of the document
+                document.body.appendChild(iframe);
+            }
+
+            // Function to clear the contents of all tables filled in buildSusRpt and buildSusRpt2
+            function clearSusRptTables() {
+                const tableIds = [
+                    'susTBL1', 'todayTBL', 'dcTBL', 'eventsMvpdTBL', 'sdkMvpdTBL', 'sdkDcTBL'
+                ];
+
+                tableIds.forEach(tableId => {
+                    const table = document.getElementById(tableId);
+                    if (table) {
+                        const tbody = table.querySelector('tbody');
+                        if (tbody) {
+                            tbody.innerHTML = ''; // Clear the table body
+                        }
+                    }
+                });
+
+                console.log("All SUS.RPT tables cleared.");
+            }
+            /* SUS.RPT*/
+
+
+
+
+
+            // Function to show/hide the spinner
+            function progressElement(show) {
+                const spinner = document.getElementById('spinner');
+                if (show) {
+                    spinner.style.display = 'block';
+                } else {
+                    spinner.style.display = 'none';
+                }
+            }
+
+            // Example fetchWithProgress function
+            async function fetchWithProgress(url, options, progressCallback) {
+                progressCallback(true);
+
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    throw error;
+                } finally {
+                    progressCallback(false);
+                }
+            }
+
+            // File input handler
+            uploadBox.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.csv';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file && file.type === 'text/csv') {
+                        handleFile(file);
+                    } else {
+                        alert('Please upload a valid CSV file.');
+                    }
+                };
+                input.click();
+            });
+
+            // Function to copy text to clipboard
+            // Function to copy text to clipboard
+            // Function to copy text to clipboard
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text)
+                    .then(() => {
+                        console.log('Text copied to clipboard:', text);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy text: ', err);
+                        // Fallback for older browsers
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        console.log('Text copied using fallback method:', text);
+                    });
+            }
+
+            // setup label copy url handlers
+            // All data tables should have a clickable header to copy the source ESMURL for data sanity checks
+            function _setupLabels() {
+                document.querySelectorAll('.copy-url').forEach(element => {
+                    element.addEventListener('click', () => {
+                        const urlId = element.getAttribute('data-url'); // Get the ID from data-url
+                        console.log("GET :: " + urlId);
+                        const urlElement = document.getElementById(urlId); // Find the hidden input
+                        if (urlElement && urlElement.value) {
+                            const url = urlElement.value; // Get the URL value
+                            copyToClipboard(url); // Copy the URL to the clipboard
+                        } else {
+                            console.error(`No URL found for ID: ${urlId}`);
+                        }
+                    });
+                });
+            }
+
+            // Initial load
+            init();
+        </script>
+</body>
+
+</html>

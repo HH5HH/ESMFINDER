@@ -1,0 +1,39 @@
+* { font-family: Menlo, Consolas, "Ubuntu Mono", "Roboto Mono", "DejaVu Sans Mono", monospace; background-color: whitesmoke;  text-align: center;}
+
+/* 
+LIVE DOCS COLOR CODING
+http://tve.helpdocsonline.com/esm-api 
+*/
+
+.channel {   color: #829621; }
+.dc {   color: #19c6ff; }
+.event {   color: #ff8802; }
+.mvpd {   color: #002eff; }
+.proxy {   color: #ff4fff; }
+.requestor-id {   color: #279926; }
+.sdk-type {   color: #d32915; }
+.sdk-version {   color: #791d15; }
+
+ul{
+    border-left: 4px dashed ghostwhite;
+    border-top: 4px dashed ghostwhite;
+    border-right: 4px dashed ghostwhite;
+    border-bottom: none;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+li{
+    flex: 1 0 0;
+    border: 2px dotted silver;
+}
+
+ul, li{
+    list-style: none;
+    padding: 5px 0px 5px 0px;
+    margin: 4px;
+}
+
+a { color: #020202; }
+
+textarea { color: darkslateblue; background: transparent; border: 0px; cursor: inherit;}

@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEG: Deep dive</title>
+    <meta name="description" content="[MEG] Deep dive means to look into something more closely">
+    <meta name="author" content="Eric Minnick">
+    <style>
+        * { 
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 2px;
+            padding: 2px;
+            vertical-align: bottom;
+        }
+        div 
+        {
+            margin:5px;
+            padding:5px;
+            border: 2px solid whitesmoke;
+        }
+
+        .container {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .scrollable-table {
+            height: 360px;
+            overflow-y: auto;
+            border: 2px solid whitesmoke;
+            margin:2px;
+        }
+        table {
+            width: 95%;
+            border-collapse: collapse;
+        }
+        th, td {
+            /* border: 1px solid #ccc; */
+            padding: 2px;
+            white-space: nowrap;
+            font-size: medium;
+            text-align: center;
+            vertical-align: middle;
+        }
+        tr:nth-child(even) {
+            background-color: #EFEFEF;
+        }
+        /* Glow effect for highlighting */
+        .glow {
+            border: 2px solid #ff0000;
+            outline: none; /* Remove default focus outline */
+            box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.5); /* Sharp, subtle shadow */
+            transition: border 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* Bleach the tips : TR highlights */
+        .highlight {
+            background-color: #f0f4f8;
+        }
+
+        .selected {
+            background-color: #e3f2fd;
+            border:1px solid black;
+        }
+
+        /* REMOVE PICKER */
+        .RMVDIV {
+            display: flex; /* horizontal alignment */
+            align-items: center;
+            gap: 10px;
+            border: 5px solid maroon;
+        }
+
+        .RMVDIV h1 {
+            color:red;
+            margin: 0; /* Remove default margin to avoid extra spacing */
+            white-space: nowrap; /* Prevent the header from wrapping */
+        }
+
+        #esmClientPicker {
+            flex-shrink: 0; /* Prevent the select from shrinking */
+            width: auto; /* Allow the select to size itself based on content */
+        }
+
+        #stat_bkt{
+            background-color: #f0f0f0; color: #a0a0a0;
+            width: 98%;
+            border-collapse: collapse;
+        }
+
+        /* Container for the form elements */
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1px; /* Space between elements */
+        }
+
+        /* Flexible input for fldEsmUrl */
+        #fldEsmUrl {
+            flex: 1; /* Takes up remaining space */
+            min-width: 420px; /* Minimum width to prevent shrinking too much */
+        }
+
+        /* Stack elements vertically on small screens */
+        @media (max-width: 720px) {
+            .form-row {
+                flex-direction: column;
+            }
+
+            #fldEsmUrl {
+                width: 100%; /* Full width on small screens */
+            }
+        }
+
+        select,input{
+            border: 1px solid grey;
+            padding: 0px;
+            margin: 0px;
+            box-sizing: border-box;
+        }
+
+        /* Target the datetime-local input specifically */
+        input[type="datetime-local"] {
+            text-align: center;
+            padding: 0px;
+            margin: 0px;
+            box-sizing: border-box;
+            width: 165px;
+        }
+    </style>
+    </head>
+<body>
+<div class="form-row">
+        <h1>CFG</h1>
+        <label for="environment">Select Environment</label>
+        <select id="environment" name="environment" required title="Environment FIRST, Software Statement or Client_Id & Client_Secret second">
+            <option value="production">Production</option>
+            <option value="staging">Staging</option>
+        </select>
+
+
+        <label for="softwareStatement" title="MEG Tool is for ESM, be sure your Software Statement has proper scoping">Paste Software Statement</label>
+        <input type="text" id="softwareStatement" name="softwareStatement" title="First time usage starting with a Software Statement.  Your resulting client_id & client_secret will get saved to the MEDIA-COMPANY Picker.">
+        <button id="btnRegister" class="button" title="GOGO button for Software Statement">SS.GO</button>
+        
+        &nbsp;
+
+        <label for="clientId" title="Start here if you've already registered your Software Statement with the V3 ESM API.  Your client_id & client_secret will get saved to the MEDIA-COMPANY Picker.">client_id : client_secret</label>
+        <input type="text" id="clientId" /><input type="text" id="clientSecret"  />
+        <button id="btnUseClientId" class="button" title="GOGO button for existing client_id & client_secret">CC.GO</button>
+</div>
+
+<div class="form-row">
+    <H1 title="Your natural starting point of MEG tool, after registering your ESM Software Statement">MEDIA-CO</H1><select id="esmClientPicker" autofocus title="MEG Tool saves every new Software Statement and or Client_Id & Client_Secret to this picker.  Reloads of this page should retain your list. Register once, reuse quickly!! Scroll to bottom to find REMOVE SS PICKER"></select>
+</div>
+
+<div>
+    
+    <div class="form-row">
+        <h1 onClick="setupUrl()" title="Click Me to reset ESM Dimension URL back to start">ESM</h1>
+        <input type="text" id="fldEsmUrl" title="ESM Dimension URL">
+        <input id="fldEsmStart" type="datetime-local" title="ESM start date">
+        <input id="fldEsmEnd" type="datetime-local" title="ESM end date">
+        <button id="btnUseEsm" class="button" title="GOGO Button for getting that ESM data">ESM.GO</button>
+    </div>
+
+    <div class="container">
+        <table align="center" border="0" id="DD_TBL">
+            <thead><tr></tr></thead>
+            <tbody></tbody>
+        </table>
+        <progress id="load_progress" max="100" value="0" title="Great ESM queries take time--patience is progress!"></progress>
+    </div>
+
+    <div class="scrollable-table" id="table1">
+        <table align="center" border="0" id="EXEC_TBL">
+            <thead><tr></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    
+    <div class="scrollable-table" id="table2">
+        <table id="RAW_TBL">
+            <thead><tr></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+
+<div class="container">
+    <h1>CONSOLE</h1>
+    <textarea id="stat_bkt" rows="21" readonly></textarea>
+</div>
+
+<div>
+    <h1>REFERENCE</h1>
+    <ul>
+        <li><a href="https://experienceleague.adobe.com/en/docs/pass/authentication/integration-guide-programmers/features-premium/esm/entitlement-service-monitoring-overview" target="_blank">Entitlement Service Monitoring Overview</a></li>
+        <li><a href="https://experienceleague.adobe.com/en/docs/pass/authentication/integration-guide-programmers/features-premium/esm/entitlement-service-monitoring-api" target="_blank">Entitlement Service Monitoring API</a></li>
+        <li><a href="https://experienceleague.adobe.com/en/docs/pass/authentication/integration-guide-programmers/features-premium/esm/understanding-serverside-metrics" target="_blank">Understanding Server-side Metrics</a></li>
+    </ul>
+</div>
+
+<div><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h1>&nbsp;</h1><h6>this div intentionally left blank</h6></div>
+
+<div class="RMVDIV">
+    <h1>REMOVE MEDIA-COMPANY</h1>
+    <select id="esmClientPickerRM" title="Remove single MEDIA-COMPANY"></select>
+    <a href="#" id="bigRedX" style="color: red; font-size: 24px; float: right;" title="REMOVE ALL MEDIA-COMPANIES">&#10006;</a>
+</div>
+
+
+
+
+
+
+
+
+
+<script>
+ack("MEG TOOL - OPEN WIDE, get the story from your data");
+ack("UNDER CONSTRUCTION DISCLAIMER: Please forgive the mess, it's a live develop as needed situation...");
+
+        const btnRegister = document.getElementById('btnRegister');
+        const fldEnviro = document.getElementById('environment');
+        const fldSS = document.getElementById('softwareStatement');
+        const picker = document.getElementById('esmClientPicker');
+        const pickerRM = document.getElementById('esmClientPickerRM');
+        const fldClientId = document.getElementById('clientId');
+        const fldClientSecret = document.getElementById('clientSecret');
+        const fldEsmUrl = document.getElementById('fldEsmUrl');
+        const fldStart = document.getElementById('fldEsmStart');
+        const fldEnd = document.getElementById('fldEsmEnd');
+        const storyTbl = document.getElementById('EXEC_TBL');  //  STORY TABLE = Top color coded or business logic applied table
+        const esmTbl = document.getElementById('RAW_TBL');  //  ESM TABLE = Raw data table
+
+        //  GLOBALS ZONE
+        var clientId = '';
+        var clientSecret = '';
+        var saveClient = false;
+        var esmUrl = '';
+
+
+        // Function to generate the table
+        function generateTable(data) 
+        {
+            const table = document.getElementById('RAW_TBL');
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+
+            // Clear existing content
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            // Generate headers
+            if (data.length > 0) {
+                const headers = Object.keys(data[0]);
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    thead.appendChild(th);
+                });
+            }
+
+            // Generate rows
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                for (const key in item) {
+                    const cell = document.createElement('td');
+                    cell.textContent = item[key];
+                    row.appendChild(cell);
+                }
+                tbody.appendChild(row);
+            });
+        }
+
+        
+        // DATEPICKER HANDLER
+        // Function to update the URL string
+        const dateSink = (key, value) => {
+            
+            // get current url
+            const params = new URLSearchParams( fldEsmUrl.value.split('?')[1] || '');
+            params.set(key, value); // Update or add the parameter
+            var newUrl = `${fldEsmUrl.value.split('?')[0]}?${params.toString()}`;
+        
+            fldEsmUrl.value = newUrl;
+        };
+
+
+
+        // Function to generate the DRILL-DOWN hotlnk table
+        function generateDD_TBL(data) 
+        {
+                const table = document.getElementById('DD_TBL');
+                const thead = table.querySelector('thead tr');
+                const tbody = table.querySelector('tbody');
+    
+                // Clear existing content
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+    
+                // Generate headers
+                if (data.length > 0) {
+                    const headers = Object.keys(data[0]);
+                    headers.forEach(header => {
+                        const th = document.createElement('th');
+                        th.textContent = header;
+                        thead.appendChild(th);
+                    });
+                }
+
+
+                // RENDER DRILL DOWNS IN SINGLE ROW
+                const row = document.createElement('tr');
+
+                // safety first -> check for self link & fields
+                if(data["self"] && fldStart && fldEnd){
+                    const params = new URLSearchParams(data["self"]['href'].split('?')[1]);
+                    const qStart = params.get('start');
+                    const qEnd = params.get('end');
+
+                    fldStart.value = qStart.slice(0, 16); // Truncate to "YYYY-MM-DDTHH:MM"
+                    fldEnd.value = qEnd.slice(0, 16); // Truncate to "YYYY-MM-DDTHH:MM"
+            }
+// -------------------------------------------------------------------
+
+
+                if(data["roll-up"])
+                {
+                //NOTE: if roll-up = "href": "/esm/v3"
+                // STOP!! THIS IS THE TOP
+                if(data["roll-up"]['href']!="/esm/v3")
+                {
+                    const cell = document.createElement('th');
+                    const link = document.createElement('a');
+                        link.setAttribute("onclick", "urlSink('"+ data["roll-up"]['href'] +"')");
+                        link.href = "#";
+                        link.textContent = "\u2191 " + data["roll-up"]["name"];
+                        cell.appendChild(link)
+                        row.appendChild(cell);
+                    }
+                }
+
+                if(data["drill-down"])
+                {
+                    // ONE OR MANY?
+                    if(data["drill-down"].length){
+
+                        data["drill-down"].forEach(item => {
+                        const cell = document.createElement('th');
+                        const link = document.createElement('a');
+                        link.setAttribute("onclick", "urlSink('"+ item['href'] +"')");
+                        link.href = "#";
+                        link.textContent = "\u2193 " + item['name'];
+
+                        cell.appendChild(link)
+                        row.appendChild(cell);
+                        });
+
+                    } else {
+
+                        const cell = document.createElement('th');
+                        const link = document.createElement('a');
+                        link.setAttribute("onclick", "urlSink('"+ data["drill-down"]['href'] +"')");
+                        link.href = "#";
+                        link.textContent = "\u2193 " + data["drill-down"]["name"];
+                        cell.appendChild(link)
+                        row.appendChild(cell);
+                    }
+                }
+                
+                //  MAKE DOWNLOAD BUTTONS
+                const btnCell = document.createElement('th');
+                    //  CSV
+                    const btnCsv = document.createElement('button');
+                    btnCsv.textContent = "CSV";
+                    btnCsv.onclick = exCSV;
+                
+                    btnCell.appendChild(btnCsv);
+                row.appendChild(btnCell);
+
+
+                //  append ROW last so any or all above cases get included
+                tbody.appendChild(row);
+
+            }
+
+    
+            //  Helper function to update ESM url ( leaving ?query-string in tact if it exists )
+            function urlSink(esmUrl)
+            {
+                // update BEFORE the ? in url
+                var oldUrl = fldEsmUrl.value;
+                var newUrl;
+
+                // does URL already have ?
+                if(oldUrl.indexOf("?") > -1)
+                    newUrl = esmUrl + '?' + fldEsmUrl.value.split('?')[1];
+                else
+                    newUrl = esmUrl;
+
+                fldEsmUrl.value = newUrl;
+                dasink();
+            }
+
+// Master reusable function to handle both registration and ESM data fetching
+// Reusable function to render data
+function renderData(data, clientId, clientSecret, isNewRegistration, saveClient, environment) {
+    // Make links table if _links exists
+    if (Object.hasOwn(data, "_links")) {
+        generateDD_TBL(data._links);
+    }
+
+    // Look for ESM report
+    if (Object.hasOwn(data, "report")) {
+        // Generate the main table with the report data
+        generateTable(data.report);
+
+        if (data.report.length > 0 && data.report[0]["count"]) {
+            // Pivot Table
+            drawPivotTable(data.report);
+        } else {
+            // Metrics Table
+            renderTable(data.report);
+        }
+
+        // Save client credentials to localStorage if flagged
+        if (isNewRegistration || saveClient) {
+            const mediaco = data.report[0]["media-company"];
+            const c_name = `[${mediaco}][${environment}]`;
+            const c_val = `${clientId}:${clientSecret}`;
+            setLocalStorage(c_name, c_val);
+            ack(`NOW WELCOMING!!! ${c_name} = ${c_val}`);
+
+            // Update pickers
+            populateSelectList("esmClientPicker");
+            populateSelectList("esmClientPickerRM");
+        }
+    } else {
+        // If no report, generate table with the raw data
+        ack("No report found. Generating table with raw data...");
+        generateTable(data);
+    }
+}
+
+// Master reusable function to handle both registration and ESM data fetching
+async function dasink(isNewRegistration = false) {
+    const progressElement = document.getElementById('load_progress');
+    const bodyElement = document.body;
+
+    try {
+        // Set the mouse cursor to "loading" and initialize progress
+        bodyElement.style.cursor = 'wait'; // Set cursor to "loading"
+        progressElement.value = 1; // Initialize progress bar to 1%
+        progressElement.style.display = 'block'; // Ensure progress bar is visible
+
+        let clientId, clientSecret;
+
+        if (isNewRegistration) {
+            // Step 1 -> Check most important field for new registration
+            const softwareStatement = fldSS.value;
+            if (softwareStatement.length <= 1) {
+                highlightRequiredFields();
+                bonk("No Software Statement, no ESM data. Please paste a Software Statement if you can't pick one.");
+                return;
+            }
+
+            // Step 2: Submit the form and process the data for new registration
+            const environment = fldEnviro.value;
+            const host = environment === 'staging' 
+                ? 'https://sp.auth-staging.adobe.com' 
+                : 'https://sp.auth.adobe.com';
+
+            // First AJAX POST request for new registration
+            const response1 = await fetchWithProgress(`${host}/o/client/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ software_statement: softwareStatement })
+            }, progressElement);
+
+            const data1 = await response1.json();
+            clientId = data1.client_id;
+            clientSecret = data1.client_secret;
+
+            // Set fields (this needs to be saved)
+            fldClientId.value = clientId;
+            fldClientSecret.value = clientSecret;
+        } else {
+            // Use existing client ID and secret
+            clientId = fldClientId.value;
+            clientSecret = fldClientSecret.value;
+
+            if (!clientId || !clientSecret) {
+                highlightRequiredFields();
+                bonk("First, register a new Software Statement or pick an existing Media-Company.");
+                return;
+            }
+        }
+
+        // Common steps for both new registration and existing client
+        const environment = fldEnviro.value;
+        const host = environment === 'staging' 
+            ? 'https://sp.auth-staging.adobe.com' 
+            : 'https://sp.auth.adobe.com';
+        const esmDomain = environment === 'staging'
+            ? 'https://mgmt.auth-staging.adobe.com'
+            : 'https://mgmt.auth.adobe.com';
+
+        // Second AJAX POST request to get access token
+        const response2 = await fetchWithProgress(`${host}/o/client/token?`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`
+        }, progressElement);
+
+        if (!response2.ok) {
+            const errorText = await response2.text();
+            throw new Error(`Failed to fetch access token: ${errorText}`);
+        }
+
+        const data2 = await response2.json();
+        const accessToken = data2.access_token; // Access token for API requests
+
+        // COUNT SAFETY CHECK
+        let esmUrl = checkForCountCall(fldEsmUrl.value);
+
+        // Fetch ESM data
+        const response3 = await fetchWithProgress(`${esmDomain + esmUrl}`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        }, progressElement);
+
+        if (!response3.ok) {
+            const errorText = await response3.text();
+            if (errorText.startsWith("The requested metrics are not available for the selected dimensions")) {
+                // Sanitize the URL by removing the query string
+                const sanitizedEsmUrl = esmUrl.replace(/&?metrics=[^&]*/, '');
+
+                // Rerun the fetch call with the sanitized URL
+                const response4 = await fetchWithProgress(`${esmDomain + sanitizedEsmUrl}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                }, progressElement);
+
+                if (!response4.ok) {
+                    const errorText2 = await response4.text();
+                    throw new Error(`Failed to fetch ESM data: ${errorText2}`);
+                }
+
+                const data4 = await response4.json();
+
+                // Prepare the alert message
+                const alertMessage = `Hey, your original call didn't work because of a METRICS mis-match.\n\n` +
+                                    `Here was the original query:\n${esmUrl}\n\n` +
+                                    `Here is what was run and is being displayed:\n${sanitizedEsmUrl}`;
+
+                // Show the alert to the user
+                alert(alertMessage);
+
+                // Duplicate the message in the console using the ack function
+                ack(alertMessage);
+
+                // Render the resulting data
+                renderData(data4, clientId, clientSecret, isNewRegistration, saveClient, environment);
+                return; // Exit the function after handling the error
+            }
+            throw new Error(`Failed to fetch ESM data: ${errorText}`);
+        }
+
+        const data3 = await response3.json(); // Parse JSON response
+
+        // Render the resulting data
+        renderData(data3, clientId, clientSecret, isNewRegistration, saveClient, environment);
+    } catch (error) {
+        bonk(`[0x33] Error: ${error.message}`);
+    } finally {
+        // Ensure progress bar is reset and cursor is restored
+        progressElement.value = 100; // Set progress to 100%
+        setTimeout(() => {
+            progressElement.style.display = 'none'; // Hide progress bar
+            bodyElement.style.cursor = 'default'; // Restore cursor to default
+        }, 500); // Delay to ensure user sees completion
+    }
+}
+
+// Updated fetchWithProgress function to handle progress updates
+async function fetchWithProgress(url, options = {}, progressElement) {
+    const response = await fetch(url, options);
+
+    // Check if the response has a content-length header
+    const contentLength = response.headers.get('content-length');
+    let totalBytes = contentLength ? parseInt(contentLength, 10) : null;
+    let loadedBytes = 0;
+
+    // Create a new response with progress tracking
+    const reader = response.body.getReader();
+    const stream = new ReadableStream({
+        async start(controller) {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    progressElement.value = 100; // Ensure progress reaches 100% at the end
+                    controller.close();
+                    break;
+                }
+                loadedBytes += value.length;
+
+                // Update progress
+                if (totalBytes) {
+                    const percentComplete = (loadedBytes / totalBytes) * 100;
+                    progressElement.value = percentComplete;
+                } else {
+                    // Simulate progress if content-length is missing
+                    progressElement.value = Math.min(progressElement.value + 10, 100); // Increment by 10%
+                }
+
+                controller.enqueue(value);
+            }
+        },
+    });
+
+    // Return the new response
+    return new Response(stream, {
+        headers: response.headers,
+        status: response.status,
+        statusText: response.statusText,
+    });
+}
+
+
+// Function to set a value in localStorage
+function setLocalStorage(key, value) 
+{
+    // safety trimming
+    var skey = key.split(' ').join('');
+    var svalue = value.split(' ').join('');
+    localStorage.setItem(skey, svalue);
+}
+
+// Function to get a value from localStorage
+function getLocalStorage(key) {
+  return localStorage.getItem(key);
+}
+
+// Function to populate select list from localStorage
+// Function to populate select list from localStorage with alphabetized options
+function populateSelectList(selectElementId, entryType) {
+    const selectElement = document.getElementById(selectElementId);
+
+    // Clear existing options
+    selectElement.innerHTML = '';
+
+    // Add a default "Select" option
+    const defaultOption = document.createElement('option');
+    defaultOption.text = ''; // Empty text for default option
+    defaultOption.value = '';
+    selectElement.add(defaultOption);
+
+    // Collect all options in an array for sorting
+    const options = [];
+
+    // Iterate over all items in localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+
+        // Create an option element for each key-value pair
+        const option = document.createElement('option');
+        option.value = value;
+        option.text = key;
+        options.push(option);
+    }
+
+    // Sort options alphabetically by their text
+    options.sort((a, b) => a.text.localeCompare(b.text));
+
+    // Add sorted options to the select element
+    options.forEach(option => selectElement.add(option));
+}
+
+// Populate a select list with localStorage data
+populateSelectList('esmClientPicker');
+populateSelectList('esmClientPickerRM');
+
+// Update event listeners to use the new dasink function
+btnRegister.addEventListener('click', () => dasink(true));
+btnUseEsm.addEventListener('click', () => { saveClient = false; dasink(false); });
+btnUseClientId.addEventListener('click', () => { saveClient = true; dasink(false); });
+
+        // ESM Media-Company Picker handler
+        picker.onchange = function() {
+            if(picker.value!=''){
+
+                const selectedValue = picker.value;
+                const aClient = selectedValue.split(':');
+
+                // set client_id & client_secret 
+                //  FIELDs & GLOBALs
+                fldClientId.value = clientId = aClient[0];
+                fldClientSecret.value = clientSecret = aClient[1];
+            } else {
+                fldClientId.value = clientId = '';
+                fldClientSecret.value = clientSecret = '';
+            }
+        };
+
+        // ESM Media-Company Picker handler
+        pickerRM.onchange = function() {
+            //  gitit
+            var rmKey = pickerRM.options[ pickerRM.selectedIndex ].text;
+            //  remove it
+            localStorage.removeItem( rmKey );
+            //  reload page
+            location.reload();
+        };
+
+
+        // Function to clear ALL localStorage and reload the page
+        function clearAllLocalStorage() {
+            localStorage.clear(); // Clear all items in localStorage
+            ack("ALL localStorage has been cleared. Reloading the page...");
+            location.reload(); // Reload the page
+        }
+
+        // Add event listener to the big red X hyperlink
+        document.getElementById('bigRedX').addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent the default link behavior
+            clearAllLocalStorage(); // Call the function to clear localStorage
+        });
+        async function exCSV()
+        {
+
+            // enusre clientId and clientSecret are set
+            if( !clientId && !clientSecret)
+            {
+                ack("First Register new Software Statement or Pick existing Media-Company");
+                highlightRequiredFields();
+                return;
+            } 
+
+            // STEP 2: Submit the form and process the data
+            var csvUrl = fldEsmUrl.value
+            // COUNT SAFETY CHECK
+            csvUrl = checkForCountCall(csvUrl);
+            
+            // grab seeds to build filename for csv download
+            var medco = picker.options[ picker.selectedIndex ].text;
+            // Find the index of the last occurrence of '/'
+            const lastSlashIndex = csvUrl.lastIndexOf('/');
+
+            // Extract the substring starting from the character after the last '/'
+            // const urlTail = csvUrl.slice(lastSlashIndex + 1);
+
+            // does URL already have ?
+            if(csvUrl.indexOf("?") !== -1)
+                csvUrl += '&';
+            else
+                csvUrl += '?';
+
+            csvUrl += "format=csv";
+
+            // const softwareStatement = document.getElementById('softwareStatement').value;
+            const environment = fldEnviro.value;
+
+            // Determine the host based on the selected environment
+            const host = environment === 'staging' 
+                ? 'https://sp.auth-staging.adobe.com' 
+                : 'https://sp.auth.adobe.com';
+            const esmDomain = (environment === 'staging'
+                ? 'https://mgmt.auth-staging.adobe.com'
+                : 'https://mgmt.auth.adobe.com');
+
+                // Second AJAX POST request
+                const response2 = await fetch(`${host}/o/client/token?`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`
+                });
+                const data2 = await response2.json();
+
+                // get accessToken for use with DCR APIs
+                let accessToken = data2.access_token;
+
+            try {
+
+                const response3 = fetch(`${esmDomain + csvUrl}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                    return response.text().then(rawMessage => {
+                        bonk(`[0x99] ${rawMessage}`);
+                        throw new Error(`${rawMessage}`);
+                    });
+                    }
+                    //  text() because .CSV
+                    return response.text();
+                })
+                .then(csvData => {
+                    //  TODO: re-visit this filename logic if filename too long gets hit at end of ESM tree
+                    var filename = medco+urlToFilesafeName(csvUrl) + ".csv";
+                    
+                    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', filename ); // Set the filename here
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    bonk(`[0x34] ${error.message}`);
+                });
+
+                // SEND CSV TO BRROWSER FOR DOWNLOAD
+            } catch (error) {
+                bonk(`[0x35] ${error.message}`);
+            }
+    }
+
+    // Translate ESM query into filesafe string name
+    //  OG exCSV() helper function
+    function urlToFilesafeName(csvUrl) {
+        // Parse the URL
+        const url = new URL(csvUrl, window.location.origin); // Use a dummy base URL if csvUrl is relative
+        const searchParams = new URLSearchParams(url.search);
+
+        // Remove 'start' and 'end' parameters if they exist
+        if (searchParams.has('start')) {
+            searchParams.delete('start');
+        }
+        if (searchParams.has('end')) {
+            searchParams.delete('end');
+        }
+
+        // Update the URL's search parameters
+        url.search = searchParams.toString();
+
+        // Convert the URL to a string and apply the transformations
+        return url.pathname
+            .replace(/^\/esm\/v3\//, '') // Remove the leading "/esm/v3/"
+            .replace(/&format=csv$/, '') // Remove "&format=csv" if it exists at the end
+            .replace(/[?&=]/g, '_') // Replace ?, &, and = with _
+            .replace(/,/g, '-') // Replace commas with -
+            .replace(/\s+/g, '-') // Replace spaces with -
+            .toLowerCase(); // Convert to lowercase for consistency
+    }
+
+//  HELPER: Use bonk() to display error messages
+function bonk(msg){
+    ack(`<OOPS>${msg}</OOPS>`);
+}
+
+//  HELPER: Use ack() to display messages in the console
+function ack(msg){
+    // NEWEST MSG ON TOP
+    var existingVal = document.getElementById("stat_bkt").value;
+    document.getElementById("stat_bkt").value = Date.now() + " " + msg + '\n' + existingVal;
+}
+
+
+// SCROLLY -------------------------------------------------------------------
+        // REMEMBER : THE "SCROLLY TABLES" ARE ACTUALLY DIVS, NOT TABLES
+        const table1 = document.getElementById('table1');
+        const table2 = document.getElementById('table2');
+
+        // Function to sync scrolling
+        const syncScroll = (source, target) => {
+            // Temporarily remove the event listener from the target to avoid infinite loop
+            target.removeEventListener('scroll', targetScrollHandler);
+            target.scrollTop = source.scrollTop;
+            // Reattach the event listener after syncing
+            target.addEventListener('scroll', targetScrollHandler);
+        };
+
+        // Event handlers for scroll events
+        const table1ScrollHandler = () => syncScroll(table1, table2);
+        const table2ScrollHandler = () => syncScroll(table2, table1);
+
+        // Attach event listeners
+        table1.addEventListener('scroll', table1ScrollHandler);
+        table2.addEventListener('scroll', table2ScrollHandler);
+
+        // Store the scroll handlers for later removal
+        const targetScrollHandler = table2ScrollHandler;
+// SCROLLY -------------------------------------------------------------------
+
+// HIGHLIGHT -------------------------------------------------------------------
+
+        // TBL Highlight and Click handler must be loaded AFTER table fully loaded with data
+// HIGHLIGHT -------------------------------------------------------------------
+function addTblHighlights() {
+    // Get all rows from both tables
+    const storyRows = storyTbl.querySelectorAll('tbody tr');
+    const rawRows = esmTbl.querySelectorAll('tbody tr');
+
+    // Add event listeners to each row in both tables
+    storyRows.forEach((row, index) => {
+        const rawRow = rawRows[index];
+        if (!rawRow) return;
+
+        // Mouseover event
+        row.addEventListener('mouseover', () => {
+            if (!row.classList.contains('selected')) {
+                row.classList.add('highlight');
+                rawRow.classList.add('highlight');
+            }
+        });
+
+        // Mouseout event
+        row.addEventListener('mouseout', () => {
+            if (!row.classList.contains('selected')) {
+                row.classList.remove('highlight');
+                rawRow.classList.remove('highlight');
+            }
+        });
+
+        // Click event
+        row.addEventListener('click', () => {
+            // Toggle selected state
+            if (row.classList.contains('selected')) {
+                row.classList.remove('selected');
+                rawRow.classList.remove('selected');
+            } else {
+                // Remove selection from all rows first
+                storyRows.forEach(r => r.classList.remove('selected'));
+                rawRows.forEach(r => r.classList.remove('selected'));
+                
+                // Add selection to clicked row
+                row.classList.add('selected');
+                rawRow.classList.add('selected');
+            }
+        });
+    });
+
+    // Also add listeners to raw table rows
+    rawRows.forEach((row, index) => {
+        const storyRow = storyRows[index];
+        if (!storyRow) return;
+
+        // Mouseover event
+        row.addEventListener('mouseover', () => {
+            if (!row.classList.contains('selected')) {
+                row.classList.add('highlight');
+                storyRow.classList.add('highlight');
+            }
+        });
+
+        // Mouseout event
+        row.addEventListener('mouseout', () => {
+            if (!row.classList.contains('selected')) {
+                row.classList.remove('highlight');
+                storyRow.classList.remove('highlight');
+            }
+        });
+
+        // Click event
+        row.addEventListener('click', () => {
+            // Toggle selected state
+            if (row.classList.contains('selected')) {
+                row.classList.remove('selected');
+                storyRow.classList.remove('selected');
+            } else {
+                // Remove selection from all rows first
+                storyRows.forEach(r => r.classList.remove('selected'));
+                rawRows.forEach(r => r.classList.remove('selected'));
+                
+                // Add selection to clicked row
+                row.classList.add('selected');
+                storyRow.classList.add('selected');
+            }
+        });
+    });
+}
+// HIGHLIGHT -------------------------------------------------------------------
+
+        // Columns to exclude from dynamic rendering
+        const excludedColumns = new Set([
+            "authn-successful", "authn-attempts",
+            "authz-successful", "authz-failed",
+            "authz-rejected", "authz-attempts",
+            "media-company", "media-tokens"
+        ]);
+
+        // Function to calculate rates
+        function calculateRate(numerator, denominator) {
+            if (denominator === 0) return 0; // Handle division by zero
+            return Math.round((numerator / denominator) * 100);
+        }
+
+        // Function to get gradient color for success rates
+        function getColor(percentage) {
+            const r = percentage < 50 ? 255 : Math.floor(255 - ((percentage - 50) * 5.1));
+            const g = percentage > 50 ? 255 : Math.floor(percentage * 5.1);
+            return `rgb(${r}, ${g}, 0)`;
+        }
+
+        // Function to get red gradient for fail/fraud rates (white to red)
+        function getRedColor(percentage) {
+            const r = Math.floor(255 * (percentage / 100));
+            const g = Math.floor(255 * (1 - percentage / 100));
+            const b = Math.floor(255 * (1 - percentage / 100));
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+
+
+// Add this sortData function (should be placed before renderTable)
+function sortData(data, column, order) {
+    return data.sort((a, b) => {
+        // Special handling for PLAY_REQUESTS column which maps to media-tokens
+        const valA = column === "PLAY_REQUESTS" ? parseFloat(a["media-tokens"]) || 0 : a[column] ?? "";
+        const valB = column === "PLAY_REQUESTS" ? parseFloat(b["media-tokens"]) || 0 : b[column] ?? "";
+
+        if (!isNaN(valA) && !isNaN(valB)) {
+            return order === "desc" ? valB - valA : valA - valB;
+        }
+        return order === "desc" ? valB.toString().localeCompare(valA.toString()) : valA.toString().localeCompare(valB.toString());
+    });
+}
+
+// Modified renderTable function to keep both tables in sync when sorting
+function renderTable(data, sortColumn = null, sortOrder = null, originalData = data) {
+    if (!storyTbl || !esmTbl) {
+        console.error("Tables not found.");
+        return;
+    }
+
+    const storyThead = storyTbl.querySelector("thead");
+    const storyTbody = storyTbl.querySelector("tbody");
+    const rawThead = esmTbl.querySelector("thead");
+    const rawTbody = esmTbl.querySelector("tbody");
+
+    if (!storyThead || !storyTbody || !rawThead || !rawTbody) {
+        console.error("Table head or body not found.");
+        return;
+    }
+
+    // Clear both tables
+    storyThead.innerHTML = "";
+    storyTbody.innerHTML = "";
+    rawThead.innerHTML = "";
+    rawTbody.innerHTML = "";
+
+    const columns = new Set();
+    data.forEach(item => {
+        Object.keys(item).forEach(key => {
+            if (!excludedColumns.has(key)) {
+                columns.add(key);
+            }
+        });
+    });
+
+    // Create header row for story table
+    const storyHeaderRow = document.createElement("tr");
+    const staticColumns = [
+        "REQUESTOR-ID", "AUTHN_SUCCESS_RATE", "AUTHZ_SUCCESS_RATE", "AUTHZ_FAIL_RATE", "AUTHZ_FRAUD_RATE", "PLAY_REQUESTS"
+    ];
+
+    staticColumns.forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        
+        if (col === "PLAY_REQUESTS") {
+            th.style.cursor = "pointer";
+            th.title = "Click to sort by this column. Shift+Click to reset.";
+            
+            if (sortColumn === col) {
+                th.textContent = sortOrder === "desc" ? `\u2193 ${col}` : `\u2191 ${col}`;
+            }
+
+            th.addEventListener("click", (event) => {
+                if (event.shiftKey) {
+                    renderTable(originalData, null, null, originalData);
+                    return;
+                }
+                const newSortOrder = (sortColumn === col && sortOrder === "desc") ? "asc" : "desc";
+                const sortedData = sortData([...data], col, newSortOrder);
+                renderTable(sortedData, col, newSortOrder, originalData);
+            });
+        }
+        storyHeaderRow.appendChild(th);
+    });
+
+    columns.forEach(col => {
+        if (!staticColumns.includes(col.toUpperCase())) {
+            const th = document.createElement("th");
+            th.textContent = col.toUpperCase().replace(/-/g, "_");
+            storyHeaderRow.appendChild(th);
+        }
+    });
+
+    storyThead.appendChild(storyHeaderRow);
+
+    // Create header row for raw table (matches original data columns)
+    const rawHeaderRow = document.createElement("tr");
+    Object.keys(data[0]).forEach(key => {
+        const th = document.createElement("th");
+        th.textContent = key;
+        rawHeaderRow.appendChild(th);
+    });
+    rawThead.appendChild(rawHeaderRow);
+
+    // Sort the data if needed
+    let sortedData = sortColumn ? sortData([...data], sortColumn, sortOrder) : [...originalData];
+
+    // Render rows for both tables using the same sorted data
+    sortedData.forEach(item => {
+        // Story table row
+        const storyRow = document.createElement("tr");
+        const authnSuccessRate = calculateRate(+item["authn-successful"], +item["authn-attempts"]);
+        const authzSuccessRate = calculateRate(+item["authz-successful"], +item["authz-attempts"]);
+        const authzFailRate = calculateRate(+item["authz-failed"], +item["authz-attempts"]);
+        const authzFraudRate = calculateRate(+item["authz-rejected"], +item["authz-attempts"]);
+
+        storyRow.innerHTML = `
+            <td>${item["requestor-id"] || item["media-company"]}</td>
+            <td class="success-rate" style="background-color: ${getColor(authnSuccessRate)}">${authnSuccessRate ? `${authnSuccessRate}%` : ""}</td>
+            <td class="success-rate" style="background-color: ${getColor(authzSuccessRate)}">${authzSuccessRate ? `${authzSuccessRate}%` : ""}</td>
+            <td class="fail-rate" style="background-color: ${getRedColor(authzFailRate)}">${authzFailRate ? `${authzFailRate}%` : ""}</td>
+            <td class="fraud-rate" style="background-color: ${getRedColor(authzFraudRate)}">${authzFraudRate ? `${authzFraudRate}%` : ""}</td>
+            <td>${item["media-tokens"]}</td>
+        `;
+
+        columns.forEach(col => {
+            if (!excludedColumns.has(col) && !staticColumns.includes(col.toUpperCase())) {
+                const td = document.createElement("td");
+                td.textContent = item[col] || "N/A";
+                storyRow.appendChild(td);
+            }
+        });
+
+        storyTbody.appendChild(storyRow);
+
+        // Raw table row (matches original data structure)
+        const rawRow = document.createElement("tr");
+        Object.keys(item).forEach(key => {
+            const td = document.createElement("td");
+            td.textContent = item[key] || "";
+            rawRow.appendChild(td);
+        });
+        rawTbody.appendChild(rawRow);
+    });
+
+    // Re-add highlight listeners after rendering
+    addTblHighlights();
+}
+
+
+        // Function to render the default EXECUTIVE STORY TABLE - color coded auth metrics
+        // Modified renderTable function to keep both tables in sync when sorting
+function renderTable(data, sortColumn = null, sortOrder = null, originalData = data) {
+    if (!storyTbl || !esmTbl) {
+        console.error("Tables not found.");
+        return;
+    }
+
+    const storyThead = storyTbl.querySelector("thead");
+    const storyTbody = storyTbl.querySelector("tbody");
+    const rawThead = esmTbl.querySelector("thead");
+    const rawTbody = esmTbl.querySelector("tbody");
+
+    if (!storyThead || !storyTbody || !rawThead || !rawTbody) {
+        console.error("Table head or body not found.");
+        return;
+    }
+
+    // Clear both tables
+    storyThead.innerHTML = "";
+    storyTbody.innerHTML = "";
+    rawThead.innerHTML = "";
+    rawTbody.innerHTML = "";
+
+    const columns = new Set();
+    data.forEach(item => {
+        Object.keys(item).forEach(key => {
+            if (!excludedColumns.has(key)) {
+                columns.add(key);
+            }
+        });
+    });
+
+    // Create header row for story table
+    const storyHeaderRow = document.createElement("tr");
+    const staticColumns = [
+        "REQUESTOR-ID", "AUTHN_SUCCESS_RATE", "AUTHZ_SUCCESS_RATE", "AUTHZ_FAIL_RATE", "AUTHZ_FRAUD_RATE", "PLAY_REQUESTS"
+    ];
+
+    staticColumns.forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        
+        if (col === "PLAY_REQUESTS") {
+            th.style.cursor = "pointer";
+            th.title = "Click to sort by this column. Shift+Click to reset.";
+            
+            if (sortColumn === col) {
+                th.textContent = sortOrder === "desc" ? `\u2193 ${col}` : `\u2191 ${col}`;
+            }
+
+            th.addEventListener("click", (event) => {
+                if (event.shiftKey) {
+                    renderTable(originalData, null, null, originalData);
+                    return;
+                }
+                const newSortOrder = (sortColumn === col && sortOrder === "desc") ? "asc" : "desc";
+                const sortedData = sortData([...data], col, newSortOrder);
+                renderTable(sortedData, col, newSortOrder, originalData);
+            });
+        }
+        storyHeaderRow.appendChild(th);
+    });
+
+    columns.forEach(col => {
+        if (!staticColumns.includes(col.toUpperCase())) {
+            const th = document.createElement("th");
+            th.textContent = col.toUpperCase().replace(/-/g, "_");
+            storyHeaderRow.appendChild(th);
+        }
+    });
+
+    storyThead.appendChild(storyHeaderRow);
+
+    // Create header row for raw table (matches original data columns)
+    const rawHeaderRow = document.createElement("tr");
+    Object.keys(data[0]).forEach(key => {
+        const th = document.createElement("th");
+        th.textContent = key;
+        rawHeaderRow.appendChild(th);
+    });
+    rawThead.appendChild(rawHeaderRow);
+
+    // Sort the data if needed
+    let sortedData = sortColumn ? sortData([...data], sortColumn, sortOrder) : [...originalData];
+
+    // Render rows for both tables using the same sorted data
+    sortedData.forEach(item => {
+        // Story table row
+        const storyRow = document.createElement("tr");
+        const authnSuccessRate = calculateRate(+item["authn-successful"], +item["authn-attempts"]);
+        const authzSuccessRate = calculateRate(+item["authz-successful"], +item["authz-attempts"]);
+        const authzFailRate = calculateRate(+item["authz-failed"], +item["authz-attempts"]);
+        const authzFraudRate = calculateRate(+item["authz-rejected"], +item["authz-attempts"]);
+
+        storyRow.innerHTML = `
+            <td>${item["requestor-id"] || item["media-company"]}</td>
+            <td class="success-rate" style="background-color: ${getColor(authnSuccessRate)}">${authnSuccessRate ? `${authnSuccessRate}%` : ""}</td>
+            <td class="success-rate" style="background-color: ${getColor(authzSuccessRate)}">${authzSuccessRate ? `${authzSuccessRate}%` : ""}</td>
+            <td class="fail-rate" style="background-color: ${getRedColor(authzFailRate)}">${authzFailRate ? `${authzFailRate}%` : ""}</td>
+            <td class="fraud-rate" style="background-color: ${getRedColor(authzFraudRate)}">${authzFraudRate ? `${authzFraudRate}%` : ""}</td>
+            <td>${item["media-tokens"]}</td>
+        `;
+
+        columns.forEach(col => {
+            if (!excludedColumns.has(col) && !staticColumns.includes(col.toUpperCase())) {
+                const td = document.createElement("td");
+                td.textContent = item[col] || "N/A";
+                storyRow.appendChild(td);
+            }
+        });
+
+        storyTbody.appendChild(storyRow);
+
+        // Raw table row (matches original data structure)
+        const rawRow = document.createElement("tr");
+        Object.keys(item).forEach(key => {
+            const td = document.createElement("td");
+            td.textContent = item[key] || "";
+            rawRow.appendChild(td);
+        });
+        rawTbody.appendChild(rawRow);
+    });
+
+    // Re-add highlight listeners after rendering
+    addTblHighlights();
+}
+
+
+
+//  EXPERIMENTAL COUNT ZONE -------------------------------------------------
+
+// PIVOT-TABLE -------------------------------------------------------------------
+
+// Function to render the PIVOT STORY TABLE - "COUNTs" queries, sortable requestor-id columns
+function drawPivotTable(data, sortColumn = null, sortOrder = null, originalData = data) {
+    ack("drawPivotTable >> " + sortColumn + " | " + sortOrder + " <<");
+
+    if (!storyTbl) {
+        console.error("Table with ID '" + _storyTable + "' not found.");
+        return;
+    }
+
+    const thead = storyTbl.querySelector("thead");
+    const tbody = storyTbl.querySelector("tbody");
+
+    if (!thead || !tbody) {
+        console.error("Table head or body not found.");
+        return;
+    }
+
+    thead.innerHTML = "";
+    tbody.innerHTML = "";
+
+    const groupByColumns = Object.keys(data[0]).filter(key => 
+        !['media-company', 'year', 'month', 'day', 'hour', 'requestor-id', 'count'].includes(key)
+    );
+
+    if (!groupByColumns.includes('event') && data.some(item => item.event)) {
+        groupByColumns.push('event');
+    }
+
+    const groupedData = data.reduce((acc, item) => {
+        const year = item.year;
+        const month = getMonthName(item.month);
+        const day = item.day;
+        const date = `${month} ${day}, ${year}`;
+        const event = item.event || "Unknown";
+        const requestorId = item['requestor-id'].trim().toLowerCase();
+        const count = parseInt(item.count);
+
+        const groupKey = [date, event, ...groupByColumns.map(col => item[col] || "")].join('|');
+
+        if (!acc[groupKey]) acc[groupKey] = { date, event };
+        groupByColumns.forEach(col => acc[groupKey][col] = item[col] || "");
+        if (!acc[groupKey][requestorId]) acc[groupKey][requestorId] = 0;
+        acc[groupKey][requestorId] += count;
+
+        return acc;
+    }, {});
+
+    const requestorIds = [...new Set(data.map(item => item['requestor-id'].trim().toLowerCase()))];
+
+    const headerRow = document.createElement('tr');
+    headerRow.innerHTML = `
+        <th>Date</th>
+        <th>Event</th>
+        ${groupByColumns.filter(col => col !== 'event').map(col => `<th>${col.toUpperCase()}</th>`).join('')}
+    `;
+
+    requestorIds.forEach(id => {
+        const th = document.createElement('th');
+        th.style.cursor = "pointer";
+        th.title = "Click to sort by this column. Shift+Click to reset.";
+        th.textContent = sortColumn && sortColumn.trim().toLowerCase() === id
+            ? (sortOrder === "desc" ? `\u2193 ${id}` : `\u2191 ${id}`)
+            : id;
+
+        th.addEventListener("click", (event) => {
+            if (event.shiftKey) {
+                drawPivotTable(originalData, null, null, originalData);
+                return;
+            }
+            drawPivotTable(data, id, sortColumn === id ? (sortOrder === "desc" ? "asc" : "desc") : "desc", originalData);
+        });
+
+        headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+
+    const sortedData = Object.values(groupedData);
+    if (sortColumn && sortOrder) {
+        const normalizedSortColumn = sortColumn.trim().toLowerCase();
+        sortedData.sort((a, b) => (sortOrder === "desc" ? (b[normalizedSortColumn] || 0) - (a[normalizedSortColumn] || 0) : (a[normalizedSortColumn] || 0) - (b[normalizedSortColumn] || 0)));
+    }
+
+    sortedData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.date}</td>
+            <td>${row.event}</td>
+            ${groupByColumns.filter(col => col !== 'event').map(col => `<td>${row[col]}</td>`).join('')}
+            ${requestorIds.map(id => `<td>${row[id] || 0}</td>`).join('')}
+        `;
+        tbody.appendChild(tr);
+    });
+
+    ack("Get PIVOT table solid, then figure out the mouseover scrolly behavior");
+}
+
+
+
+
+
+// month number to name translator
+function getMonthName(monthNumber) {
+  const date = new Date();
+  date.setMonth(monthNumber - 1);
+  return date.toLocaleDateString('en-US', { month: 'long' });
+}
+
+
+
+    // set default start ESM url
+    function setupUrl(){
+            fldEsmUrl.value = "/esm/v3/media-company/year?requestor-id&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens";
+    }
+
+//  EXPERIMENTAL COUNT ZONE -------------------------------------------------
+//  MOST ESM calls will contain metrics
+//  &metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens
+//  but some ESM dimensions are only COUNT based
+//
+//  This helper takes an incoming ESM URL, then lops off the METRICs portion so the ESM query can be called without the "dimensions doesn't exist" errors
+function checkForCountCall(url) {
+    // Extract the path and query string
+    const [path, query] = url.split('?');
+
+    if (url.includes('channel')) 
+    {   //  HACK : metrics sanitation
+
+        // Remove authn metrics from the query string
+        url = url.replace(/(metrics=)[^&]*/, (match, p1) => {
+            const metrics = match.split('=')[1]
+                .split(',')
+                .filter(metric => !metric.startsWith('authn-'))
+                .join(',');
+            return `${p1}${metrics}`;
+        });
+    }
+
+    // Check if the path contains '/event' or '/event/'
+    if (!path.includes('/event') && !path.includes('/event/')) {
+
+
+        // NOTE : some /dc calls do not contain requestor-id, but have media-company instead
+        if (url.includes('/dc')) 
+        {
+                // Check if "/requestor-id/" appears anywhere before "/dc"
+                const indexOfDC = url.indexOf('/dc');
+                const substringBeforeDC = url.substring(0, indexOfDC);
+
+            if (!substringBeforeDC.includes('/requestor-id/')) {
+                url = url.replace(/requestor-id/g, 'media-company');
+            }
+        }
+
+        return url; // Return the original URL if the path doesn't contain '/event' or '/event/'
+    }
+
+    // Split the query string into individual parameters
+    const params = query ? query.split('&') : [];
+
+    // Filter out the 'metrics' parameter
+    const filteredParams = params.filter(param => !param.startsWith('metrics='));
+
+    // Reconstruct the query string without adding '=' for keys without values
+    const sanitizedQuery = filteredParams.join('&');
+
+    // Reconstruct the URL
+    return sanitizedQuery ? `${path}?${sanitizedQuery}` : path;
+}
+//  EXPERIMENTAL ZONE -------------------------------------------------
+
+        // Function to add glow effect to required fields
+        //  First load of page users need to A) register a Software Statement or B) select an existing Media-Company
+        //  This function will highlight the required fields to guide the user
+        function highlightRequiredFields() {
+            // Add glow class to both fields
+            fldEnviro.classList.add('glow');
+            fldSS.classList.add('glow');
+            
+            //  ONLY HIGHLIGHT THE PICKER IF IT'S NOT EMPTY            
+            if(picker.options.length > 1){
+                picker.classList.add('glow');
+            }
+
+            // Remove glow effect after 3 seconds
+            setTimeout(() => {
+                fldEnviro.classList.remove('glow');
+                fldSS.classList.remove('glow');
+                picker.classList.remove('glow');
+            }, 3000);
+        }
+//  EXPERIMENTAL ZONE -------------------------------------------------
+
+//  PASTE FULL ESM URL ZONE -------------------------------------------------
+//  Add PASTE listner to esmURL field in case full /ESM/V3/ urls are pasted in
+document.getElementById('fldEsmUrl').addEventListener('paste', function(event) {
+    event.preventDefault(); // Prevent the default paste behavior
+
+    // Get the pasted text
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+
+    // Check if the pasted text contains "/esm/v3/"
+    if (pastedText.includes('/esm/v3/')) {
+
+      // Extract everything after "/esm/v3/"
+      const newValue = pastedText.substring(pastedText.indexOf('/esm/v3/'));
+
+ack("GOT ESM V3 URL!!! " + pastedText);
+ack("MEG IT >>  " + newValue);
+      
+      // Set the new value to the text field
+      this.value = newValue;
+    }
+  });
+//  PASTE FULL ESM URL ZONE -------------------------------------------------
+
+
+//  INIT FORM
+        //  INIT FORM WITH DEFAULTS
+        setupUrl();
+        
+        //  SETUP DATE FIELDS
+        if(fldStart&&fldEnd)
+        {
+            // DATE CHANGE HANDLERS keep the ESM url updated when date fields change
+            fldStart.addEventListener('change', (e) => {
+            ack("START DATE CHANGE TO : "+e.target.value);
+                dateSink('start', e.target.value);
+            });
+
+            fldEnd.addEventListener('change', (e) => {
+            ack("END DATE CHANGE TO : "+e.target.value);
+                dateSink('end', e.target.value);
+            });
+
+            // Set fldStart.value to NOW - 24 hours and fldEnd.value to NOW
+            fldStart.value = new Date(Date.now() - 86400000).toISOString().slice(0, 16); // 24 hours ago for START
+            fldEnd.value = new Date().toISOString().slice(0, 16); // NOW for END
+        }
+        else
+        {
+            ack("?DONDE ES LOS DATE FIELDOS?");
+        }
+
+
+    </script>
+</body>
+</html>

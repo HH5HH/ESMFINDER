@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRED:Finding Relevant ESM Data</title>
+    <style>
+        /* Global Reset and Base Styles */
+        * {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            flex-direction: column;
+        }
+
+        /* Add to your existing styles */
+        .table-container {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+        }
+
+        .table-container h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        .data-table {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .error {
+            color: #d9534f;
+            font-weight: bold;
+        }
+
+        /* Table container improvements */
+        .table-container {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        /* Table improvements */
+        .data-table {
+            width: 100%;
+            margin-top: 10px;
+            table-layout: auto;
+            min-width: max-content;
+            /* Ensures table can expand beyond container */
+            white-space: nowrap;
+            /* Prevents text wrapping */
+        }
+
+        /* Cell improvements */
+        .data-table th,
+        .data-table td {
+            padding: 8px 12px;
+            /* More horizontal padding */
+            text-align: left;
+            /* Left align for better readability */
+            vertical-align: middle;
+            max-width: 300px;
+            /* Prevents cells from becoming too wide */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            /* Adds ellipsis for overflow text */
+        }
+
+        /* Responsive container for the results pod */
+        #results-pod {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        /* Optional: Add a shadow to indicate scrollable area */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        /* Add this to your existing styles */
+        .copy-url {
+            cursor: pointer;
+            display: block;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .copy-url:hover {
+            background-color: #f0f0f0;
+        }
+
+        .copy-url h4 {
+            margin: 0;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        /* App Container */
+        #app {
+            width: 85vw;
+            min-width: 900px;
+            height: 96vh;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Upload Box */
+        #upload-box {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1.5em;
+            color: #666;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        #upload-box.dragover {
+            border-color: #000;
+            background-color: #f9f9f9;
+        }
+
+        /* Dropdowns */
+        select {
+            padding: 10px;
+            font-size: 16px;
+            width: 25%;
+        }
+
+        /* Dashboard Layout */
+        #dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .pod {
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        #results-pod {
+            width: 100%;
+            flex: 1 1 100%;
+        }
+
+        /* Results Section */
+        #results {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Status Message */
+        #statusMessage {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Spinner */
+        #spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #09f;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            white-space: nowrap;
+            font-size: medium;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        tr:nth-child(even) {
+            background-color: #EFEFEF;
+        }
+
+        /* Scrollable Containers */
+        .scroll {
+            overflow-x: auto;
+            max-height: 500px;
+            width: 100%;
+            padding: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        /* Filter Container */
+        #filter-container {
+            display: flex;
+            vertical-align: top;
+            justify-content: stretch;
+            gap: 11px;
+            width: 100%;
+        }
+
+        #ddPremiumCustApps {
+            flex: 0 0 auto;
+            width: 25%;
+        }
+
+        #fltReqBox {
+            display: none;
+            flex: 1;
+            margin-left: 20px;
+        }
+
+        #fsRequestorIds {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        #fsRequestorIds legend {
+            font-weight: bold;
+        }
+
+        #fsRequestorIds label {
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            margin-right: 10px;
+            text-decoration: none;
+        }
+
+        #fsRequestorIds label:hover {
+            text-decoration: underline;
+        }
+
+        #fsRequestorIds input[type='checkbox'] {
+            margin-right: 5px;
+        }
+
+        #applyFilterLink {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 10px 0;
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        #applyFilterLink:hover {
+            background-color: #e0e0e0;
+            text-decoration: underline;
+        }
+
+        /* Media Queries */
+        @media (max-width: 900px) {
+            #app {
+                min-width: 100%;
+                padding: 10px;
+            }
+
+            .pod {
+                flex: 1 1 100%;
+                min-width: 100%;
+            }
+
+            #upload-box {
+                font-size: 1.2em;
+            }
+
+            select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div id="upload-box">Please download the latest Premium Collection CSV, then come back here and Drop it like
+            it's hot</div>
+        <div id="spinner">
+            <div class="spinner"></div><span>Please Wait...</span>
+        </div>
+        <div id="filter-container">
+            <select id="ddPremiumCustApps" style="display: none;"></select>
+            <select id="ddTimeZooms" style="display: none;">
+                <option value="">Select time</option>
+                <option value="YEAR">YEAR</option>
+                <option value="MONTH">MONTH</option>
+                <option value="DAY">DAY</option>
+            </select>
+            <div id="fltReqBox">
+                <fieldset id="fsRequestorIds"></fieldset>
+            </div>
+        </div>
+
+        <div id="dashboard" style="display: none;">
+            <div id="results-pod" class="pod full-width">
+            </div>
+
+            <div id="results" style="display: none;">
+                <p><strong>Media Company:</strong> <span id="mediaCoResult"></span></p>
+                <p><strong>Environment:</strong> <span id="envResult"></span></p>
+                <p><strong>Client ID:</strong> <span id="clientIdResult"></span></p>
+                <p><strong>Client Secret:</strong> <span id="clientSecretResult"></span></p>
+                <p><strong>Access Token:</strong> <span id="accessTokenResult"></span></p>
+                <p><strong>Token Expiration (UTC):</strong> <span id="tokenExpirationUTC"></span></p>
+                <p><strong>Token Expiration (Local):</strong> <span id="tokenExpirationLocal"></span></p>
+                <div id="statusMessage"></div>
+            </div>
+        </div>
+
+        <script>
+            const DASHBOARD_POD_TIME_ESMURLS = {
+                MEDIA_COMPANY: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens",
+                    MONTH: "/esm/v3/media-company/year/month?requestor-id&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens",
+                    DAY: "/esm/v3/media-company/year/month/day?requestor-id&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens"
+                },
+                FRAUD: {
+                    YEAR: "/esm/v3/media-company/year?event&requestor-id&mvpd!=None&reason=fraud",
+                    MONTH: "/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason=fraud",
+                    DAY: "/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason=fraud"
+                },
+                EVENTS: {
+                    YEAR: "/esm/v3/media-company/year?event&requestor-id&mvpd!=None&reason",
+                    MONTH: "/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason",
+                    DAY: "/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason?requestor-id&mvpd!=None&reason"
+                },
+                MVPDS: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&mvpd!=None&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens%2Cauthz-latency",
+                    MONTH: "/esm/v3/media-company/year/month?requestor-id&mvpd!=None&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens%2Cauthz-latency",
+                    DAY: "/esm/v3/media-company/year/month/day/proxy/mvpd?requestor-id&mvpd!=None&metrics=authn-attempts%2Cauthn-successful%2Cauthz-attempts%2Cauthz-failed%2Cauthz-rejected%2Cauthz-successful%2Cmedia-tokens%2Cauthz-latency"
+                },
+                DC_STATS: {
+                    YEAR: "/esm/v3/media-company/year?dc&requestor-id&mvpd!=None&metrics=unique-accounts,unique-sessions",
+                    MONTH: "/esm/v3/media-company/year/month?dc&requestor-id&mvpd!=None&metrics=unique-accounts,unique-sessions",
+                    DAY: "/esm/v3/media-company/year/month/day?dc&requestor-id&mvpd!=None&metrics=unique-accounts,unique-sessions"
+                },
+                PLATFORM_STATS: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&platform&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens",
+                    MONTH: "/esm/v3/media-company/year/month/day/requestor-id/platform?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens",
+                    DAY: "/esm/v3/media-company/year/month/day/requestor-id/platform?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful,media-tokens"
+                },
+                EAP: {
+                    YEAR: "/esm/v3/media-company/year?mvpd&requestor-id&eap!=None&metrics=authn-attempts,authn-failed,authn-pending,authn-successful",
+                    MONTH: "/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap?eap!=None&metrics=authn-attempts,authn-failed,authn-pending,authn-successful",
+                    DAY: "/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap?eap!=None&metrics=authn-attempts,authn-failed,authn-pending,authn-successful"
+                },
+                CHANNEL: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&channel&metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful",
+                    MONTH: "/esm/v3/media-company/year/month/day/requestor-id?channel&metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful",
+                    DAY: "/esm/v3/media-company/year/month/day/requestor-id?channel&metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful"
+                },
+                SSO: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&sso-type&metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful",
+                    MONTH: "/esm/v3/media-company/year/month/day/requestor-id?sso-type&metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful",
+                    DAY: "/esm/v3/media-company/year/month/day/requestor-id?sso-type&metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful"
+                },
+                CONTENT_CATEGORY: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&customer-app&content-category&metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful",
+                    MONTH: "/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category?metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful",
+                    DAY: "/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category?metrics=authz-attempts,authz-failed,authz-latency,authz-rejected,authz-successful"
+                },
+                DEVICE: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&device&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful",
+                    MONTH: "/esm/v3/media-company/year/month/day/requestor-id/device?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful",
+                    DAY: "/esm/v3/media-company/year/month/day/requestor-id/device?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful"
+                },
+                OS: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&os-family&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful",
+                    MONTH: "/esm/v3/media-company/year/month/day/requestor-id/os-family?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful",
+                    DAY: "/esm/v3/media-company/year/month/day/requestor-id/os-family?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful"
+                },
+                BROWSER: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&os-family&browser-family&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful",
+                    MONTH: "/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful",
+                    DAY: "/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful"
+                },
+                SDK: {
+                    YEAR: "/esm/v3/media-company/year?requestor-id&platform&nsdk&metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful",
+                    MONTH: "/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful",
+                    DAY: "/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk?metrics=authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful"
+                }
+            };
+
+            const app = document.getElementById('app');
+            const uploadBox = document.getElementById('upload-box');
+            const ddPremiums = document.getElementById('ddPremiumCustApps');
+            const ddTime = document.getElementById('ddTimeZooms');
+            const spinnerElement = document.getElementById('spinner');
+            const resultsDiv = document.getElementById('results');
+            const statusMessage = document.getElementById('statusMessage');
+            const dashboard = document.getElementById('dashboard');
+
+            console.log("......... BRING BACK THE REQUESTOR-ID PICKER BOX ONCE FRED IS FINDING RELEVANT ESM DATA");
+            let _FLTR_ESM = ''; // tack on ESM filter
+            let requestorConfigCache = {}; // call config once per requestor-id
+
+            function init() {
+                populateSelectList('ddPremiumCustApps');
+
+                if (localStorage.length > 0) {
+                    uploadBox.style.display = 'none';
+                    ddPremiums.style.display = 'block';
+                    ddTime.style.display = 'block';
+                }
+            }
+            // setup label copy url handlers
+            // All data tables should have a clickable header to copy the source ESMURL for data sanity checks
+            function _setupLabels() {
+                document.querySelectorAll('.copy-url').forEach(element => {
+                    element.addEventListener('click', () => {
+                        const urlId = element.getAttribute('data-url'); // Get the ID from data-url
+                        console.log("GET :: " + urlId);
+                        const urlElement = document.getElementById(urlId); // Find the hidden input
+                        if (urlElement && urlElement.value) {
+                            const url = urlElement.value; // Get the URL value
+                            copyToClipboard(url); // Copy the URL to the clipboard
+                        } else {
+                            console.error(`No URL found for ID: ${urlId}`);
+                        }
+                    });
+                });
+            }
+
+            function calculateTimeRange(time) {
+                const now = new Date();
+                let start;
+
+                switch (time) {
+                    case "YEAR":
+                        start = new Date(now.getFullYear(), 0, 1);
+                        break;
+                    case "MONTH":
+                        start = new Date(now.getFullYear(), now.getMonth(), 1);
+                        break;
+                    case "DAY":
+                        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                        break;
+                    case "HOUR":
+                        start = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+                        break;
+                    case "MINUTE":
+                        start = new Date(now.getTime() - 60 * 60 * 1000);
+                        break;
+                    default:
+                        throw new Error("Invalid time range");
+                }
+
+                const formatLocalTime = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, "0");
+                    const day = String(date.getDate()).padStart(2, "0");
+                    const hours = String(date.getHours()).padStart(2, "0");
+                    const minutes = String(date.getMinutes()).padStart(2, "0");
+                    return `${year}-${month}-${day}T${hours}:${minutes}`;
+                };
+
+                return {
+                    start: formatLocalTime(start),
+                    end: formatLocalTime(now),
+                };
+            }
+
+            const handleFile = async (file) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const text = e.target.result;
+                    const rows = parseCSV(text);
+                    if (rows.length > 0) {
+                        spinnerElement.style.display = 'flex';
+                        await processCSVRows(rows);
+                        spinnerElement.style.display = 'none';
+                        populateSelectList('ddPremiumCustApps');
+                        uploadBox.style.display = 'none';
+                        ddPremiums.style.display = 'block';
+                        ddTime.style.display = 'block';
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            const parseCSV = (text) => {
+                const lines = text.split('\n');
+                const headers = lines[0].split(',');
+                return lines.slice(1).filter(line => line.trim()).map(line => {
+                    const values = line.split(',');
+                    return {
+                        mediaCompany: values[0].trim(),
+                        env: values[1].trim(),
+                        key: values[2].trim()
+                    };
+                });
+            };
+
+            const processCSVRows = async (rows) => {
+                for (const row of rows) {
+                    if (row.mediaCompany.length <= 1 || row.env.length <= 1 || row.key.length <= 1) {
+                        continue;
+                    }
+
+                    const softwareStatement = row.key;
+                    const environment = row.env;
+                    const host = environment === 'staging'
+                        ? 'https://sp.auth-staging.adobe.com'
+                        : 'https://sp.auth.adobe.com';
+
+                    try {
+                        const response = await fetch(`${host}/o/client/register`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ software_statement: softwareStatement })
+                        });
+
+                        const data = await response.json();
+                        const clientId = data.client_id;
+                        const clientSecret = data.client_secret;
+
+                        const c_name = `${row.mediaCompany}_${row.env}`;
+                        const c_val = `${clientId}:${clientSecret}`;
+                        setLocalStorage(c_name, c_val);
+                        console.log(`NOW WELCOMING!!! ${c_name} = ${c_val}`);
+                    } catch (error) {
+                        console.error(`Error processing row: ${row.mediaCompany}`, error);
+                    }
+                }
+            };
+
+            function setLocalStorage(key, value) {
+                const skey = key.split(' ').join('');
+                const svalue = value.split(' ').join('');
+                localStorage.setItem(skey, svalue);
+            }
+
+            function populateSelectList(selectElementId) {
+                const selectElement = document.getElementById(selectElementId);
+                selectElement.innerHTML = '';
+
+                const defaultOption = document.createElement('option');
+                defaultOption.text = 'Select Media-Co';
+                defaultOption.value = '';
+                selectElement.add(defaultOption);
+
+                const options = [];
+
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.text = key;
+                    options.push(option);
+                }
+
+                options.sort((a, b) => a.text.localeCompare(b.text));
+                options.forEach(option => selectElement.add(option));
+            }
+
+            async function changeMediaCompany(e) {
+                const selectedValue = e.target.value;
+
+                if (!selectedValue) {
+                    clearDashboard();
+                    return;
+                }
+
+                // Clear results-pod when changing media company
+                const resultsPod = document.getElementById('results-pod');
+                resultsPod.innerHTML = '';
+
+                const aMediaCoEnv = e.target.options[e.target.selectedIndex].text.split('_');
+                const aClient = selectedValue.split(':');
+
+                const mediaCo = aMediaCoEnv[0];
+                const environment = aMediaCoEnv[1];
+                const clientId = aClient[0];
+                const clientSecret = aClient[1];
+                let accessToken = aClient[2];
+                let expirationDateEpoch = aClient[3];
+
+                requestorConfigCache = {};
+                console.log("CONFIG CACHE CLEARED......... NEW MEDIA-CO : " + mediaCo);
+
+                let host;
+                if (!accessToken && !expirationDateEpoch) {
+                    console.log("MUST GET ACCESS TOKEN");
+                    host = environment === 'staging'
+                        ? 'https://sp.auth-staging.adobe.com'
+                        : 'https://sp.auth.adobe.com';
+                } else {
+                    console.log("GET THAT ESM!!!!");
+                    host = environment === 'staging'
+                        ? 'https://mgmt.auth-staging.adobe.com'
+                        : 'https://mgmt.auth.adobe.com';
+                }
+
+                const isTokenValid = accessToken && expirationDateEpoch && parseInt(expirationDateEpoch) > Date.now();
+
+                if (!isTokenValid) {
+                    if (!accessToken) {
+                        statusMessage.textContent = "No accessToken > Requesting new token...";
+                        console.log("No accessToken > Requesting new token...");
+                    } else {
+                        statusMessage.textContent = "accessToken expired > Requesting new token...";
+                        console.log("accessToken expired > Requesting new token...");
+                    }
+
+                    try {
+                        host = environment === 'staging'
+                            ? 'https://sp.auth-staging.adobe.com'
+                            : 'https://sp.auth.adobe.com';
+
+                        const response2 = await fetch(`${host}/o/client/token?`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`
+                        });
+                        const data2 = await response2.json();
+
+                        accessToken = data2.access_token;
+                        const createdAt = data2.created_at;
+                        const expiresIn = data2.expires_in;
+                        const expirationTimeUTC = new Date(createdAt + expiresIn * 1000).toUTCString();
+                        const expirationTimeLocal = new Date(createdAt + expiresIn * 1000).toString();
+                        expirationDateEpoch = createdAt + expiresIn * 1000;
+
+                        const updatedValue = `${clientId}:${clientSecret}:${accessToken}:${expirationDateEpoch}`;
+                        setLocalStorage(`${mediaCo}_${environment}`, updatedValue);
+                        e.target.options[e.target.selectedIndex].value = updatedValue;
+
+                        statusMessage.textContent = "accessToken refreshed!!!";
+                        console.log("accessToken refreshed!!!");
+
+                        if (ddTime.value) {
+                            console.log("_________________[" + ddTime.value + "]");
+                            BuildDashboard(ddTime.value, accessToken, environment);
+                        } else {
+                            console.log("_________________DEFAULT2 autoLoad");
+                            autoLoad(accessToken, environment);
+                        }
+
+                    } catch (error) {
+                        console.error('Error retrieving access token:', error);
+                        statusMessage.textContent = "Error retrieving access token. Please try again.";
+                        console.log("Error retrieving access token. Please try again.");
+                        clearDashboard();
+                        return;
+                    }
+                } else {
+                    statusMessage.textContent = "accessToken still valid!";
+                    console.log("accessToken still valid!");
+
+                    if (ddTime.value) {
+                        console.log("_________________[" + ddTime.value + "]");
+                        BuildDashboard(ddTime.value, accessToken, environment);
+                    } else {
+                        console.log("_________________DEFAULT2 autoLoad");
+                        autoLoad(accessToken, environment);
+                    }
+                }
+
+                document.getElementById('mediaCoResult').textContent = mediaCo;
+                document.getElementById('envResult').textContent = environment;
+                document.getElementById('clientIdResult').textContent = clientId;
+                document.getElementById('clientSecretResult').textContent = clientSecret;
+                document.getElementById('accessTokenResult').textContent = accessToken;
+                document.getElementById('tokenExpirationUTC').textContent = new Date(parseInt(expirationDateEpoch)).toUTCString();
+                document.getElementById('tokenExpirationLocal').textContent = new Date(parseInt(expirationDateEpoch)).toString();
+
+                resultsDiv.style.display = 'block';
+            }
+
+            function clearDashboard() {
+                dashboard.style.display = 'none';
+                ddTime.selectedIndex = 0;
+                resultsDiv.style.display = 'none';
+                document.getElementById('mediaCoResult').textContent = '';
+                document.getElementById('envResult').textContent = '';
+                document.getElementById('clientIdResult').textContent = '';
+                document.getElementById('clientSecretResult').textContent = '';
+                document.getElementById('accessTokenResult').textContent = '';
+                document.getElementById('tokenExpirationUTC').textContent = '';
+                document.getElementById('tokenExpirationLocal').textContent = '';
+                statusMessage.textContent = '';
+                document.getElementById('fltReqBox').style.display = 'none'; // Hide fltReqBox when clearing the dashboard
+                console.log('');
+            }
+
+            ddPremiums.addEventListener('change', changeMediaCompany);
+
+            uploadBox.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadBox.classList.add('dragover');
+            });
+
+            uploadBox.addEventListener('dragleave', () => {
+                uploadBox.classList.remove('dragover');
+            });
+
+            uploadBox.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadBox.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'text/csv') {
+                    handleFile(file);
+                } else {
+                    alert('Please upload a valid CSV file.');
+                }
+            });
+
+            ddTime.addEventListener('change', timeZoomChange);
+
+
+            async function timeZoomChange(e) {
+                if (!ddPremiums.value) {
+                    alert("Please select a Media Company first.");
+                    ddTime.value = "";
+                    return;
+                }
+
+                const selectedTime = e.target.value;
+                if (selectedTime) {
+
+                // Clear results-pod when changing time zoom
+                const resultsPod = document.getElementById('results-pod');
+                resultsPod.innerHTML = '';
+
+// TODO: TIME zone changing should already have this context setup, and not really need to look this up each time
+
+                    const aMediaCoEnv = e.target.options[e.target.selectedIndex].text.split('_');
+                    const aClient = ddPremiums.value.split(':');
+
+                    const mediaCo = aMediaCoEnv[0];
+                    const environment = aMediaCoEnv[1];
+                    const clientId = aClient[0];
+                    const clientSecret = aClient[1];
+                    let accessToken = aClient[2];
+                    let expirationDateEpoch = aClient[3];
+
+                    const isTokenValid = accessToken && expirationDateEpoch && parseInt(expirationDateEpoch) > Date.now();
+
+                    if (!isTokenValid) {
+                        if (!accessToken) {
+                            statusMessage.textContent = "NO accessToken > Requesting new token...";
+                            console.log("NO accessToken > Requesting new token...");
+                        } else {
+                            statusMessage.textContent = "EXPIRE accessToken > Requesting new token...";
+                            console.log("EXPIRE accessToken > Requesting new token...");
+                        }
+
+                        try {
+                            const response2 = await fetch(`${host}/o/client/token?`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                },
+                                body: `grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`
+                            });
+                            const data2 = await response2.json();
+
+                            accessToken = data2.access_token;
+                            const createdAt = data2.created_at;
+                            const expiresIn = data2.expires_in;
+                            const expirationTimeUTC = new Date(createdAt + expiresIn * 1000).toUTCString();
+                            const expirationTimeLocal = new Date(createdAt + expiresIn * 1000).toString();
+                            expirationDateEpoch = createdAt + expiresIn * 1000;
+
+                            const updatedValue = `${clientId}:${clientSecret}:${accessToken}:${expirationDateEpoch}`;
+                            setLocalStorage(`${mediaCo}_${environment}`, updatedValue);
+                            e.target.options[e.target.selectedIndex].value = updatedValue;
+
+                            statusMessage.textContent = "accessToken refreshed!!!";
+                            console.log("accessToken refreshed!!!");
+                        } catch (error) {
+                            console.error('NO TOKEN SOUP FOR YOU:', error);
+                            statusMessage.textContent = "NO TOKEN SOUP FOR YOU.";
+                            dashboard.style.display = 'none';
+                            return;
+                        }
+                    } else {
+                        statusMessage.textContent = "accessToken still valid!";
+                        console.log("accessToken still valid!");
+
+                        console.log("_________________NOW LOAD " + selectedTime);
+                        BuildDashboard(selectedTime, accessToken, environment);
+                    }
+                } else {
+                    dashboard.style.display = 'none';
+                }
+            }
+
+            async function autoLoad(token, env) {
+                // Currently default to load DAY when Media Company changes
+                ddTime.selectedIndex = 2;
+                BuildDashboard('DAY', token, env);
+            }
+
+
+
+            async function BuildDashboard(time, token, environment) {
+                const host = environment === 'staging'
+                    ? 'https://mgmt.auth-staging.adobe.com'
+                    : 'https://mgmt.auth.adobe.com';
+
+                const { start, end } = calculateTimeRange(time);
+
+                console.log("ESM TIME EXPERIMENTAL :: start = " + start + " END NOT SET [" + time + "]");
+                const appendTimeParams = (url) => {
+                    const urlObj = new URL(url, host);
+                    urlObj.searchParams.set('start', start);
+                    return urlObj.toString();
+                };
+
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.MEDIA_COMPANY[time] + _FLTR_ESM), token, 'month,day,year,requestor-id,media-tokens,authn-attempts,authn-successful,authz-attempts,authz-failed,authz-rejected,authz-successful','MEDIA COMPANY');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.FRAUD[time] + _FLTR_ESM), token, '', 'FRAUD');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.EVENTS[time] + _FLTR_ESM), token, '', 'EVENTS');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.MVPDS[time] + _FLTR_ESM), token, '', 'MVPDS');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.PLATFORM_STATS[time] + _FLTR_ESM), token, '', 'PLATFORM');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.DEVICE[time] + _FLTR_ESM), token, '', 'DEVICE');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.OS[time] + _FLTR_ESM), token, '', 'OS');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.BROWSER[time] + _FLTR_ESM), token, '', 'BROWSER');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.SDK[time] + _FLTR_ESM), token, '', 'SDK');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.CHANNEL[time] + _FLTR_ESM), token, '', 'CHANNEL');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.CONTENT_CATEGORY[time] + _FLTR_ESM), token, '', 'CONTENT CTG');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.EAP[time] + _FLTR_ESM), token, '', 'EXT.AUTH.PROVIDER');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.SSO[time] + _FLTR_ESM), token, '', 'SINGLE-SIGN-ON');
+                _esmToTable(appendTimeParams(DASHBOARD_POD_TIME_ESMURLS.DC_STATS[time] + _FLTR_ESM), token, '', 'DATA CENTER');
+
+                dashboard.style.display = 'flex';
+            }
+
+            async function _esmToTable(url, token, esmCols = '', labelName = '') {
+                const resultsPod = document.getElementById('results-pod');
+
+                // Create table container
+                const tableContainer = document.createElement('div');
+                tableContainer.className = 'table-container';
+                resultsPod.appendChild(tableContainer);
+
+                // Generate a unique ID for this table
+                const resultTbl = 'tbl-' + Math.random().toString(36).substr(2, 9);
+
+                // Determine the table title - use labelName if provided, otherwise extract from URL
+                const tblTitle = labelName || (() => {
+                    const urlParts = new URL(url).pathname.split('/').filter(part => part);
+                    return urlParts[urlParts.length - 1] || 'data';
+                })();
+
+                // Create the header with copy functionality
+                const headerSpan = document.createElement('span');
+                headerSpan.className = 'copy-url';
+                headerSpan.setAttribute('data-url', `${resultTbl}-url`);
+
+                // Add click handler for copying URL
+                headerSpan.addEventListener('click', () => {
+                    const urlId = headerSpan.getAttribute('data-url');
+                    const urlElement = document.getElementById(urlId);
+                    if (urlElement && urlElement.value) {
+                        copyToClipboard(urlElement.value);
+                    }
+                });
+
+                // Create the title
+                const title = document.createElement('h4');
+                title.textContent = tblTitle;
+                headerSpan.appendChild(title);
+
+                // Create hidden input with the URL
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = `${resultTbl}-url`;
+                hiddenInput.value = url;
+                headerSpan.appendChild(hiddenInput);
+
+                tableContainer.appendChild(headerSpan);
+
+                const progress = document.createElement('div');
+                progress.textContent = 'Loading data...';
+                tableContainer.appendChild(progress);
+
+                try {
+                    const response = await fetchWithProgress(url, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }, progressElement);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const jsonResponse = await response.json();
+                    const report = jsonResponse.report;
+
+                    tableContainer.removeChild(progress);
+
+                    if (!report || report.length === 0) {
+                        tableContainer.innerHTML = '<p>No data available</p>';
+                        return;
+                    }
+
+                    // Extract unique requestor-ids for filtering
+                    const uniqueRequestorIds = new Set();
+                    report.forEach(item => {
+                        if (item['requestor-id']) {
+                            uniqueRequestorIds.add(item['requestor-id']);
+                        }
+                    });
+
+                    // Show fltReqBox only if there are 2 or more unique requestor-ids
+                    // OR if _FLTR_ESM contains requestor-ids to be un-selected
+                    if ((uniqueRequestorIds.size >= 2) || (_FLTR_ESM.includes("&requestor-id="))) {
+                        document.getElementById('fltReqBox').style.display = 'block';
+
+                        // Populate the fieldset with checkboxes for each unique requestor-id
+                        const fsRequestorIds = document.getElementById('fsRequestorIds');
+                        fsRequestorIds.innerHTML = '<legend>REQUESTOR-ID</legend>';
+                        uniqueRequestorIds.forEach(requestorId => {
+                            const span = document.createElement('span');
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.id = `reqId${requestorId}`;
+                            checkbox.name = 'requestor-ids';
+                            checkbox.value = requestorId;
+                            checkbox.checked = true;
+                            span.appendChild(checkbox);
+                            const label = document.createElement('label');
+                            label.htmlFor = `reqId${requestorId}`;
+                            label.textContent = requestorId;
+                            span.appendChild(label);
+                            fsRequestorIds.appendChild(span);
+                        });
+
+                        // Add the "GO FISH" link after the checkboxes
+                        const applyFilterLink = document.createElement('a');
+                        applyFilterLink.id = 'applyFilterLink';
+                        applyFilterLink.href = '#';
+                        applyFilterLink.title = 'Click to filter by requestor-id(s). Uncheck all to reset full requestor-id list';
+                        applyFilterLink.textContent = 'GO FISH';
+                        fsRequestorIds.appendChild(applyFilterLink);
+
+                        // Add event listener to the apply/remove filter link
+                        applyFilterLink.onclick = async function (event) {
+                            event.preventDefault();
+
+                            // Clear the dashboard before applying new filters
+                            const resultsPod = document.getElementById('results-pod');
+                            resultsPod.innerHTML = '';
+                            progressElement(true);
+
+                            try {
+                                // Get all checked checkboxes
+                                const checkboxes = document.querySelectorAll('#fsRequestorIds input[type="checkbox"]:checked');
+
+                                // Clear the global filter variable
+                                _FLTR_ESM = '';
+
+                                if (checkboxes.length > 0) {
+                                    // Build the _FLTR_ESM string based on checked checkboxes
+                                    _FLTR_ESM = '&' + Array.from(checkboxes)
+                                        .map(checkbox => `requestor-id=${checkbox.value}`)
+                                        .join('&');
+                                }
+
+                                console.log("FILTER: " + _FLTR_ESM);
+
+                                const aMediaCoEnv = ddPremiums.options[ddPremiums.selectedIndex].text.split('_');
+                                const aClient = ddPremiums.value.split(':');
+                                const environment = aMediaCoEnv[1];
+                                const accessToken = aClient[2];
+
+                                // Rebuild the dashboard with new filters
+                                await BuildDashboard(ddTime.value, accessToken, environment);
+                            } catch (error) {
+                                console.error('Error applying filters:', error);
+                                statusMessage.textContent = "Error applying filters. Please try again.";
+                            } finally {
+                                progressElement(false);
+                            }
+                        };
+                    } else {
+                        // Hide fltReqBox if there is only one or no requestor-id
+                        document.getElementById('fltReqBox').style.display = 'none';
+                    }
+
+                    // Create scrollable container for just the table
+                    const scrollContainer = document.createElement('div');
+                    scrollContainer.className = 'scroll';
+                    tableContainer.appendChild(scrollContainer);
+
+                    const table = document.createElement('table');
+                    table.className = 'data-table';
+                    table.id = resultTbl; // Set the dynamic ID
+                    table.style.width = 'auto';
+
+                    const columns = esmCols.split(',').filter(col => col.trim() !== '');
+                    const availableColumns = columns.length > 0 ?
+                        columns.filter(col => report[0].hasOwnProperty(col)) :
+                        Object.keys(report[0]);
+
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+
+                    availableColumns.forEach(col => {
+                        const th = document.createElement('th');
+                        th.textContent = col.toUpperCase().replace(/-/g, ' ');
+                        headerRow.appendChild(th);
+                    });
+
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement('tbody');
+
+                    report.forEach(item => {
+                        const row = document.createElement('tr');
+
+                        availableColumns.forEach(col => {
+                            const td = document.createElement('td');
+
+                            let value = item[col];
+                            if (value === undefined || value === null) {
+                                value = '';
+                            } else if (typeof value === 'object') {
+                                value = JSON.stringify(value);
+                            } else if (col.toLowerCase().includes('time') ||
+                                col.toLowerCase().includes('date')) {
+                                value = new Date(value).toLocaleString();
+                            } else if (typeof value === 'number') {
+                                value = value.toLocaleString();
+                            }
+
+                            td.textContent = value;
+                            row.appendChild(td);
+                        });
+
+                        tbody.appendChild(row);
+                    });
+
+                    table.appendChild(tbody);
+                    scrollContainer.appendChild(table); // Add table to scroll container
+
+                } catch (error) {
+                    console.error('Error fetching or parsing JSON:', error);
+                    tableContainer.innerHTML = `<p class="error">Error loading data: ${error.message}</p>`;
+                } finally {
+                    progressElement(false);
+                }
+            }
+
+            // Add this helper function if not already present
+            function copyToClipboard(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                // Optional: Show a brief notification that text was copied
+                const notification = document.createElement('div');
+                notification.textContent = 'URL copied to clipboard!';
+                notification.style.position = 'fixed';
+                notification.style.bottom = '20px';
+                notification.style.right = '20px';
+                notification.style.backgroundColor = '#333';
+                notification.style.color = '#fff';
+                notification.style.padding = '10px';
+                notification.style.borderRadius = '4px';
+                notification.style.zIndex = '1000';
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 2000);
+            }
+
+            function progressElement(show) {
+                const spinner = document.getElementById('spinner');
+                if (show) {
+                    spinner.style.display = 'block';
+                } else {
+                    spinner.style.display = 'none';
+                }
+            }
+
+            async function fetchWithProgress(url, options, progressCallback) {
+                progressCallback(true);
+
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    throw error;
+                } finally {
+                    progressCallback(false);
+                }
+            }
+
+            uploadBox.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.csv';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file && file.type === 'text/csv') {
+                        handleFile(file);
+                    } else {
+                        alert('Please upload a valid CSV file.');
+                    }
+                };
+                input.click();
+            });
+
+            init();
+        </script>
+</body>
+
+</html>

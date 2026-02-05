@@ -1,0 +1,5953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ESM3 FINDIT</title>
+<style>
+:root{
+  --bg:#D5D5D8;
+  --panel:#FFFFFF;
+  --accent:#E26A5A;
+  --table-head:#ECEFED;
+  --table-row:#F9FAF9;
+  --table-alt:#F1F3F1;
+}
+body{background:var(--bg);font-family:system-ui,Arial;margin:20px}
+dl{background:var(--panel);padding:14px;border-radius:8px;margin-bottom:14px;
+   box-shadow:0 1px 3px rgba(0,0,0,.06)}
+dt{font-weight:600}
+dd{margin-left:20px;margin-bottom:10px}
+.col-list{color:#6A6A6A;font-size:13px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+input,select{padding:10px;font-size:15px}
+button{padding:10px 20px}
+.reset-button{background:var(--accent);color:#fff;border:none;border-radius:4px}
+.esm-table-wrapper{max-height:14.5em;overflow:auto;border:1px solid #DDD;border-radius:6px}
+table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:13px}
+th,td{padding:6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      border-bottom:1px solid #DDD;text-align:left}
+thead th{position:sticky;top:0;background:var(--table-head)}
+tfoot td{position:sticky;bottom:0;background:#fff}
+tbody tr:nth-child(odd){background:var(--table-row)}
+tbody tr:nth-child(even){background:var(--table-alt)}
+tbody tr:hover{background:#F0EEE9}
+th.active-sort {
+  font-weight: 600;
+  text-decoration: underline;
+}
+th .sort-icon {
+  font-size: 0.75em;
+  opacity: 0.8;
+}
+.highlight {  background-color: #ff0;}
+.parent-highlight { background-color: #d3f0d3;}
+.search-container{
+  display:flex;
+  align-items:center;
+}
+
+.search-left{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.search-right{
+  margin-left:auto;   /* ← THIS is the key */
+}
+
+.search-right select{
+  min-width:220px;
+}
+.esm-footer {
+  display: flex;
+  align-items: center;
+}
+
+.esm-close {
+  margin-left: auto;
+  font-weight: bold;
+  font-size: 16px;
+  color: #999;
+  cursor: pointer;
+}
+
+.esm-close:hover {
+  color: #E26A5A;
+  text-decoration: underline;
+}
+
+</style>
+</head>
+<body>
+
+<input type="hidden" name="cid" value="27eefb6b-88c1-4418-94f5-872f07960782">
+<input type="hidden" name="csc" value="1bc4962b-75d2-441f-90a7-941f4a167ee3">
+<input type="hidden" name="access_token" value="eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyN2VlZmI2Yi04OGMxLTQ0MTgtOTRmNS04NzJmMDc5NjA3ODIiLCJuYmYiOjE3Njk4MDU1MzcsImlzcyI6ImF1dGguYWRvYmUuY29tIiwic2NvcGVzIjoiYW5hbHl0aWNzOmNsaWVudCIsImV4cCI6MTc2OTgyNzEzNywiaWF0IjoxNzY5ODA1NTM3fQ.WqDIwkxUSeI3ITG972qp9RgJecGTfgaTYbErU9C3q1Z6X2tHCuKHGK9t1kEEGQEQVX9Fz2GJXmv8Z6pvRkHbJrKd_hGC6fo1bCpfN47Jo2g2PBD-l3qyiqeHgWdc32M-ZXIAT2-OV4YLUoZsnvCmPw5KSI5T4_2Nkh7KH8nj9xQnTLDWbMqPdSmFsOL8qhOe2cFWEMDjL4m6Tu6dLznhATPtVSDT5j9ql4UpuKmc2KmorIXtbXk6q7Ddr30IodAXt8wvih4Nxk9pId-SEAvMM0BXKBk4Fk8pLhfmT1FwZ70wuze9R-QljpHAUf-pWlU5xlKAEf9uSAbKPSCNNCeRAA">
+
+<div class="search-container">
+  <div class="search-left">
+    <select id="filterSelect" onchange="filterList()" title="Zoom Level">
+    <option value=""></option>
+    <option value="YR">YR</option>
+    <option value="MO">MO</option>
+    <option value="DAY">DAY</option>
+    <option value="HR">HR</option>
+    <option value="MIN">MIN</option>
+    </select>
+    <input id="searchText" placeholder="ESM Column search...">
+    <button onclick="highlightText()">FIND IT</button>
+    <button class="reset-button" onclick="resetList()">RESET</button>
+  </div>
+
+  <div class="search-right">
+  <select id="fltr_requestorid"
+          name="fltr_requestorid"
+          multiple
+          size="1"
+          onchange="onRequestorChange()"
+          title="Filter by selected requestor-id(s)">
+    </select>
+  </div>
+</div>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event</a></dt>
+<dd class="col-list">count
+day
+event
+media-company
+month
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id</a></dt>
+<dd class="col-list">count
+day
+event
+media-company
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy</a></dt>
+<dd class="col-list">count
+day
+event
+media-company
+month
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd</a></dt>
+<dd class="col-list">count
+day
+event
+media-company
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason</a></dt>
+<dd class="col-list">count
+day
+event
+media-company
+month
+mvpd
+proxy
+reason
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason/dc</a></dt>
+<dd class="col-list">count
+day
+dc
+event
+media-company
+month
+mvpd
+proxy
+reason
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+month
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+month
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd/reason" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd/reason</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+month
+mvpd
+proxy
+reason
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd/reason/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd/reason/dc</a></dt>
+<dd class="col-list">count
+day
+dc
+event
+hour
+media-company
+month
+mvpd
+proxy
+reason
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+hour
+media-company
+minute
+month
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+minute
+month
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+minute
+month
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd/reason" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd/reason</a></dt>
+<dd class="col-list">count
+day
+event
+hour
+media-company
+minute
+month
+mvpd
+proxy
+reason
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd/reason/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd/reason/dc</a></dt>
+<dd class="col-list">count
+day
+dc
+event
+hour
+media-company
+minute
+month
+mvpd
+proxy
+reason
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+proxy
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel/platform-version" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel/platform-version</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform-version
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel/platform-version/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel/platform-version/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform-version
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/sso-type" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/sso-type</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+sso-type
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/sso-type/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/sso-type/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+sso-type
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/channel/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+hour
+media-company
+minute
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+hour
+media-company
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+hour
+media-company
+minute
+month
+mvpd
+nsdk
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+hour
+media-company
+minute
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+dc
+eap
+hour
+media-company
+minute
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/channel/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/channel/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+nsdk
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+sso-type
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+sso-type
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/channel/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+dc
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+customer-app
+day
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/channel/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+customer-app
+day
+dc
+hour
+media-company
+minute
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/channel/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/channel" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/channel/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/dc" class="zmMIN" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+minute
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+proxy
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel/platform-version" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel/platform-version</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform-version
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel/platform-version/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel/platform-version/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+platform-version
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+content-category
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+hour
+media-company
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+hour
+media-company
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+hour
+media-company
+month
+mvpd
+nsdk
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+hour
+media-company
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+dc
+eap
+hour
+media-company
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+content-category
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+nsdk
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+hour
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+sso-type
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+dc
+hour
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+sso-type
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/channel" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/channel/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+dc
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/dc" class="zmHR" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+hour
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+proxy
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+proxy
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+proxy
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+media-company
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+media-company
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+media-company
+month
+mvpd
+nsdk
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+eap
+media-company
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-failed
+authn-pending
+authn-successful
+day
+dc
+eap
+media-company
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+unique-accounts
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+nsdk
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+sso-type
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+sso-type
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel/platform-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel/platform-version</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+media-company
+media-tokens
+month
+platform-version
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel/platform-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel/platform-version/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+channel
+day
+dc
+media-company
+media-tokens
+month
+platform-version
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/sso-type" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/sso-type</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+day
+media-company
+media-tokens
+month
+requestor-id
+sso-type
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/sso-type/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/sso-type/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+cdt
+day
+dc
+media-company
+media-tokens
+month
+requestor-id
+sso-type
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+content-category
+customer-app
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+device
+media-company
+media-tokens
+month
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device/os-family" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device/os-family</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+device
+media-company
+media-tokens
+month
+os-family
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device/os-family/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device/os-family/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+device
+media-company
+media-tokens
+month
+os-family
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+os-family
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+browser-family
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+os-family
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family/browser-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family/browser-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+browser-family
+browser-version
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+os-family
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family/browser-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family/browser-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+browser-family
+browser-version
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+os-family
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/api" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/api</a></dt>
+<dd class="col-list">api
+application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/api/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/api/dc</a></dt>
+<dd class="col-list">api
+application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+content-category
+customer-app
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+media-company
+media-tokens
+month
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+nsdk
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+nsdk
+nsdk-version
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+media-company
+media-tokens
+month
+nsdk
+nsdk-version
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+media-company
+media-tokens
+month
+nsdk
+nsdk-version
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+nsdk
+nsdk-version
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/os-family" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/os-family</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+nsdk
+nsdk-version
+os-family
+platform
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/os-family/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/os-family/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+nsdk
+nsdk-version
+os-family
+platform
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/sso-type" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/sso-type</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+media-company
+media-tokens
+month
+nsdk
+nsdk-version
+platform
+requestor-id
+sso-type
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/sso-type/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/sso-type/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+day
+dc
+media-company
+media-tokens
+month
+nsdk
+nsdk-version
+platform
+requestor-id
+sso-type
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/device" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/device</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+device
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/device/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/device/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+device
+media-company
+media-tokens
+month
+mvpd
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name</a></dt>
+<dd class="col-list">application-name
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/channel</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/channel/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/dc</a></dt>
+<dd class="col-list">application-name
+application-version
+authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/decision-type" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/decision-type</a></dt>
+<dd class="col-list">channel
+customer-app
+day
+decision-attempts
+decision-failed
+decision-media-tokens
+decision-successful
+decision-type
+media-company
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/decision-type/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/decision-type/dc</a></dt>
+<dd class="col-list">channel
+customer-app
+day
+dc
+decision-attempts
+decision-failed
+decision-media-tokens
+decision-successful
+decision-type
+media-company
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+content-category
+customer-app
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category/channel" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category/channel</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category/channel/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category/channel/dc</a></dt>
+<dd class="col-list">authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+channel
+content-category
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+customer-app
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+nsdk
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+os-family
+platform
+proxy
+requestor-id
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family/browser-family" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family/browser-family</a></dt>
+<dd class="col-list"><em>No report columns</em></dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<dl>
+<dt><a href="https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family/dc" class="zmDAY" onclick="runEsm(this);return false;">https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family/dc</a></dt>
+<dd class="col-list">authn-attempts
+authn-pending
+authn-successful
+authz-attempts
+authz-failed
+authz-latency
+authz-rejected
+authz-successful
+clientless-failures
+clientless-tokens
+day
+dc
+media-company
+media-tokens
+month
+mvpd
+nsdk
+nsdk-version
+os-family
+platform
+proxy
+requestor-id
+unique-accounts
+unique-sessions
+year</dd>
+<dd class="esm-table-host"></dd>
+</dl>
+<script>
+// -----------------------------
+// Global ESM table state
+// -----------------------------
+let table = null;
+let thead = null;
+let tbody = null;
+let tfoot = null;
+
+let data = [];
+let displayCols = [];
+
+let hasAuthN = false;
+let hasAuthZ = false;
+let hasCount = false;
+
+// sorting
+// let esmSortStack = [];
+let esmSortStack = [{ col: 'DATE', dir: 'DESC' }];
+
+
+  
+  function renderBody(data) {
+  if (!tbody) {
+    console.warn('renderBody called before tbody initialized');
+    return;
+  }
+
+  tbody.innerHTML = '';
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.appendChild(td(buildDate(r)));
+
+    if (hasAuthN) {
+      tr.appendChild(td(
+        r['authn-attempts']
+          ? ((r['authn-successful'] / r['authn-attempts']) * 100).toFixed(2) + '%'
+          : '—'
+      ));
+    }
+
+    if (hasAuthZ) {
+      tr.appendChild(td(
+        r['authz-attempts']
+          ? ((r['authz-successful'] / r['authz-attempts']) * 100).toFixed(2) + '%'
+          : '—'
+      ));
+    }
+
+    if (!hasAuthN && !hasAuthZ && hasCount) {
+      tr.appendChild(td(r.count));
+    }
+
+    displayCols.forEach(c => tr.appendChild(td(r[c] ?? '')));
+    tbody.appendChild(tr);
+  });
+}
+
+
+
+/* ---------- TOKEN MANAGEMENT ---------- */
+function getToken(){
+  return localStorage.getItem('access_token')
+    || document.querySelector('input[name=access_token]').value;
+}
+function setToken(t){
+  localStorage.setItem('access_token', t);
+  document.querySelector('input[name=access_token]').value = t;
+}
+async function refreshToken(){
+  const cid=document.querySelector('input[name=cid]').value;
+  const csc=document.querySelector('input[name=csc]').value;
+  const r=await fetch(
+    'https://sp.auth.adobe.com/o/client/token?grant_type=client_credentials'
+    +'&client_id='+encodeURIComponent(cid)
+    +'&client_secret='+encodeURIComponent(csc),
+    {method:'POST'}
+  );
+  if(!r.ok) throw new Error('Token refresh failed');
+  const j=await r.json();
+  setToken(j.access_token);
+  return j.access_token;
+}
+async function fetchWithRefresh(url){
+  let r=await fetch(url,{headers:{Authorization:'Bearer '+getToken()}});
+  if(r.status===401){
+    await refreshToken();
+    r=await fetch(url,{headers:{Authorization:'Bearer '+getToken()}});
+  }
+  return r;
+}
+
+/* ---------- REQUESTOR-ID FILTER ---------- */
+
+async function loadRequestorIds(){
+  const url =
+    'https://mgmt.auth.adobe.com/esm/v3/media-company/year?requestor-id';
+
+  const r = await fetchWithRefresh(url);
+  if(!r.ok) return;
+
+  const j = await r.json();
+  if(!j.report || !Array.isArray(j.report)) return;
+
+  const ids = new Set();
+  let mediaCompany = null;
+
+  j.report.forEach(row=>{
+    if(row['requestor-id']) ids.add(row['requestor-id']);
+    if(!mediaCompany && row['media-company']) 
+    {
+      mediaCompany = row['media-company'];
+    }
+  });
+
+  if(mediaCompany){
+    document.title = `ESM3 FINDIT — ${mediaCompany}`;
+  }
+
+  const sel = document.getElementById('fltr_requestorid');
+  [...ids].sort().forEach(id=>{
+    const o = document.createElement('option');
+    o.value = id;
+    o.textContent = id;
+    sel.appendChild(o);
+  });
+}
+
+
+/* ---------- TIME WINDOW LOGIC (NEW, ADDITIVE) ---------- */
+function iso(d){
+  return d.toISOString().replace(/\.\d{3}Z$/,'Z');
+}
+
+function computeTimeWindow(anchor){
+  const now = new Date();
+
+  // helpers for calendar prefixes
+  const y  = now.getFullYear();
+  const m  = String(now.getMonth() + 1).padStart(2,'0');
+  const d  = String(now.getDate()).padStart(2,'0');
+
+  if(anchor.classList.contains('zmYR')){
+    return {
+      start: String(y - 1),
+      end:   iso(now)
+    };
+  }
+
+  if(anchor.classList.contains('zmMO')){
+    const prev = new Date(y, now.getMonth() - 1, 1);
+    return {
+      start: `${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`,
+      end:   iso(now)
+    };
+  }
+
+  if(anchor.classList.contains('zmDAY')){
+    const prev = new Date(y, now.getMonth(), now.getDate() - 1);
+    return {
+      start: `${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}-${String(prev.getDate()).padStart(2,'0')}`,
+      end:   iso(now)
+    };
+  }
+
+  if(anchor.classList.contains('zmHR')){
+    const start = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+    return {
+      start: iso(start),
+      end:   iso(now)
+    };
+  }
+
+  if(anchor.classList.contains('zmMIN')){
+    const start = new Date(now.getTime() - 60 * 60 * 1000);
+    return {
+      start: iso(start),
+      end:   iso(now)
+    };
+  }
+
+
+
+  return { start: iso(now), end: iso(now) };
+}
+
+
+
+
+function appendTimeParams(base, anchor){
+  const t = computeTimeWindow(anchor);
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}start=${encodeURIComponent(t.start)}&end=${encodeURIComponent(t.end)}`;
+}
+
+/* ---------- UI FILTERS (UNCHANGED) ---------- */
+function highlightText(){
+  document.querySelectorAll("dl").forEach(dl=>{
+    dl.style.display = "";
+  });
+  const input = document.getElementById("searchText");
+  input.value = input.value.toLowerCase().split(" ").join("");
+  const term = input.value;
+  if (!term) return;
+
+  document.querySelectorAll("dl").forEach(dl => {
+    const dd = dl.querySelector(".col-list");
+    if (!dd) return;
+
+    const rawText = dd.innerText;
+    const lower = rawText.toLowerCase();
+
+    // reset state
+    dd.innerHTML = rawText;
+    dl.classList.remove("parent-highlight");
+
+    if (lower.includes(term)) {
+      dd.innerHTML = rawText.replace(
+        new RegExp(term, "gi"),
+        m => `<span class="highlight">${m}</span>`
+      );
+      dl.classList.add("parent-highlight");
+      dl.style.display = "";
+    } else {
+      dl.style.display = "none";
+    }
+  });
+}
+
+function resetList(){
+  document.querySelectorAll("dl").forEach(dl => {
+    const dd = dl.querySelector(".col-list");
+    if (dd) dd.innerHTML = dd.innerText;
+    dl.classList.remove("parent-highlight");
+    dl.style.display = "";
+  });
+  searchText.value = "";
+  filterSelect.selectedIndex = 0;
+}
+
+function filterList(){
+  document.querySelectorAll("dl").forEach(dl=>{
+    dl.style.display = "";
+  });
+  const filter = document.getElementById("filterSelect").value;
+  const dlElements = document.querySelectorAll("dl");
+
+  const zoomTokens = [
+    { key: "YR",  token: "/year"   },
+    { key: "MO",  token: "/month"  },
+    { key: "DAY", token: "/day"    },
+    { key: "HR",  token: "/hour"   },
+    { key: "MIN", token: "/minute" }
+  ];
+
+  dlElements.forEach(dl => {
+    const anchor = dl.querySelector("a");
+    if (!anchor) {
+      dl.style.display = "none";
+      return;
+    }
+
+    const href = anchor.href;
+    let detectedZoom = null;
+    let lastIndex = -1;
+
+    zoomTokens.forEach(z => {
+      const idx = href.lastIndexOf(z.token);
+      if (idx > lastIndex) {
+        lastIndex = idx;
+        detectedZoom = z.key;
+      }
+    });
+
+    if (!filter) {
+      dl.style.display = "";
+      return;
+    }
+
+    dl.style.display = detectedZoom === filter ? "" : "none";
+  });
+}
+
+/* ---------- TABLE LOGIC (UNCHANGED + TIME-AWARE) ---------- */
+const METRIC_COLUMNS=new Set([
+  'authn-attempts','authn-successful','authn-pending','authn-failed',
+  'clientless-tokens','clientless-failures',
+  'authz-attempts','authz-successful','authz-failed','authz-rejected',
+  'authz-latency','media-tokens',
+  'unique-accounts','unique-sessions','count'
+]);
+const DATE_PARTS=['year','month','day','hour','minute'];
+
+function buildDate(r){
+  return new Date(
+    r.year??1970,(r.month??1)-1,r.day??1,r.hour??0,r.minute??0
+  ).toLocaleString('en-US',{
+    month:'2-digit',day:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit'
+  });
+}
+
+/* ---------- SORT STATE ---------- */
+// let esmSortStack = [{ col: 'DATE', dir: 'DESC' }];
+
+function getCellValue(row, colKey, ctx) {
+  if (colKey === 'DATE') {
+    return new Date(
+      row.year ?? 1970,
+      (row.month ?? 1) - 1,
+      row.day ?? 1,
+      row.hour ?? 0,
+      row.minute ?? 0
+    ).getTime();
+  }
+
+  if (ctx.authN && colKey === 'AuthN Success') {
+    return row['authn-attempts']
+      ? row['authn-successful'] / row['authn-attempts']
+      : -1;
+  }
+
+  if (ctx.authZ && colKey === 'AuthZ Success') {
+    return row['authz-attempts']
+      ? row['authz-successful'] / row['authz-attempts']
+      : -1;
+  }
+
+  if (colKey === 'COUNT') return row.count ?? 0;
+  return row[colKey] ?? '';
+}
+
+
+function sortReport(data, colKey, dir, ctx) {
+  const mul = dir === 'ASC' ? 1 : -1;
+  return [...data].sort((a, b) => {
+    const va = getCellValue(a, colKey, ctx);
+    const vb = getCellValue(b, colKey, ctx);
+
+    if (va < vb) return -1 * mul;
+    if (va > vb) return 1 * mul;
+
+    // Stable tie-break (DATE DESC)
+    return getCellValue(b, 'DATE', ctx) - getCellValue(a, 'DATE', ctx);
+  });
+}
+
+function refreshHeaderStates() {
+  if (!thead) return;
+
+  thead.querySelectorAll('th').forEach(th => {
+    if (typeof th._updateState === 'function') {
+      th._updateState();
+    }
+  });
+}
+
+
+async function runEsm(a) 
+{
+  /* -----------------------------
+   * Zoom selector sync
+   * ----------------------------- */
+  document
+    .querySelectorAll('#filterSelect option')
+    .forEach(o => o.selected = false);
+
+  const zoomClass = [...a.classList].find(c => c.startsWith('zm'));
+  if (zoomClass) {
+    document.getElementById('filterSelect').value =
+      zoomClass.replace('zm', '');
+  }
+
+  /* -----------------------------
+   * Build request URL
+   * ----------------------------- */
+  const timedBase = appendTimeParams(a.href, a);
+  const jsonUrl = appendRequestorParams(timedBase + '&format=json');
+
+  /* -----------------------------
+   * Prepare table DOM (ONE table)
+   * ----------------------------- */
+  const host = a.closest('dl').querySelector('.esm-table-host');
+  host.innerHTML = `
+    <div class="esm-table-wrapper">
+      <table>
+        <thead><tr></tr></thead>
+        <tbody></tbody>
+        <tfoot><tr></tr></tfoot>
+      </table>
+    </div>
+  `;
+
+  table = host.querySelector('table');
+  thead = host.querySelector('thead');
+  tbody = host.querySelector('tbody');
+  tfoot = host.querySelector('tfoot');
+
+  /* -----------------------------
+   * Fetch data
+   * ----------------------------- */
+  const r = await fetchWithRefresh(jsonUrl);
+  if (!r.ok) return;
+
+  const json = await r.json();
+  if (!json.report || !json.report.length) {
+    tbody.innerHTML = '<tr><td>No data</td></tr>';
+    return;
+  }
+
+  /* -----------------------------
+   * Detect columns (GLOBAL state)
+   * ----------------------------- */
+  const row0 = json.report[0];
+
+  hasAuthN =
+    row0['authn-attempts'] != null &&
+    row0['authn-successful'] != null;
+
+  hasAuthZ =
+    row0['authz-attempts'] != null &&
+    row0['authz-successful'] != null;
+
+  hasCount = row0['count'] != null;
+
+  displayCols = Object.keys(row0).filter(c =>
+    !METRIC_COLUMNS.has(c) &&
+    !DATE_PARTS.includes(c) &&
+    c !== 'media-company'
+  );
+
+  /* -----------------------------
+   * Build headers
+   * ----------------------------- */
+  const headers = ['DATE'];
+  if (hasAuthN) headers.push('AuthN Success');
+  if (hasAuthZ) headers.push('AuthZ Success');
+  if (!hasAuthN && !hasAuthZ && hasCount) headers.push('COUNT');
+  headers.push(...displayCols);
+
+  const headRow = thead.querySelector('tr');
+  headRow.innerHTML = '';
+
+  const ctx = { authN: hasAuthN, authZ: hasAuthZ };
+
+  esmSortStack = [{ col: 'DATE', dir: 'DESC' }];
+  localStorage.setItem('esmSort', JSON.stringify(esmSortStack));
+
+  headers.forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    th.title = 'Sort by ' + h;
+    th.style.cursor = 'pointer';
+    th.setAttribute('role', 'columnheader');
+
+    const icon = document.createElement('span');
+    icon.className = 'sort-icon';
+    icon.style.marginLeft = '6px';
+    th.appendChild(icon);
+
+    th._updateState = () => {
+      const active = esmSortStack[0]?.col === h;
+      th.classList.toggle('active-sort', active);
+      if (active) {
+        th.setAttribute(
+          'aria-sort',
+          esmSortStack[0].dir === 'ASC'
+            ? 'ascending'
+            : 'descending'
+        );
+        icon.textContent =
+          esmSortStack[0].dir === 'ASC' ? '▲' : '▼';
+      } else {
+        th.removeAttribute('aria-sort');
+        icon.textContent = '';
+      }
+    };
+
+    th.onclick = e => {
+      const existing = esmSortStack.find(s => s.col === h);
+
+      if (e.shiftKey && existing) {
+        existing.dir =
+          existing.dir === 'DESC' ? 'ASC' : 'DESC';
+      } else if (e.shiftKey) {
+        esmSortStack.push({ col: h, dir: 'DESC' });
+      } else {
+        esmSortStack = [{
+          col: h,
+          dir: existing
+            ? (existing.dir === 'DESC' ? 'ASC' : 'DESC')
+            : 'DESC'
+        }];
+      }
+
+      data = [...data].sort((a, b) => {
+        for (const s of esmSortStack) {
+          const d = sortReport([a, b], s.col, s.dir, ctx);
+          if (d[0] !== a) return 1;
+          if (d[0] !== b) return -1;
+        }
+        return 0;
+      });
+
+      renderBody(data);
+      refreshHeaderStates();
+      localStorage.setItem(
+        'esmSort',
+        JSON.stringify(esmSortStack)
+      );
+    };
+
+    headRow.appendChild(th);
+  });
+
+  // const ctx = { authN: hasAuthN, authZ: hasAuthZ };
+  data = sortReport(json.report, 'DATE', 'DESC', ctx);
+  esmSort = { col: 'DATE', dir: 'DESC' };
+  const ftd = document.createElement('td');
+  ftd.colSpan = headers.length;
+
+  const footer = document.createElement('div');
+  footer.className = 'esm-footer';
+
+  const csv = document.createElement('a');
+  csv.href = '#';
+  csv.textContent = 'CSV';
+  csv.onclick = e => {
+    e.preventDefault();
+    downloadCsv(csv, a.href, esmSort);
+  };
+
+
+  const close = document.createElement('span');
+  close.className = 'esm-close';
+  close.textContent = ' x ';
+  close.onclick = () => {
+    host.innerHTML = '';
+  };
+
+  footer.appendChild(csv);
+  footer.appendChild(close);
+  ftd.appendChild(footer);
+  tfoot.appendChild(ftd);
+
+  /* -----------------------------
+   * Initial sort + render
+   * ----------------------------- */
+  data = sortReport(json.report, 'DATE', 'DESC', ctx);
+  renderBody(data);
+  refreshHeaderStates();
+}
+
+function refreshHeaderStates() {
+  if (!thead) return;   // ✅ guard
+
+  thead.querySelectorAll('th').forEach(th => {
+    if (typeof th._updateState === 'function') {
+      th._updateState();
+    }
+  });
+}
+
+
+
+function td(v){
+  const td=document.createElement('td');
+  td.textContent=v;
+  td.title=v;
+  return td;
+}
+
+async function downloadCsv(link, base, sortState){
+  const a = link.closest('dl').querySelector('a');
+  const csvUrl = appendRequestorParams(
+    appendTimeParams(base, a) + '&format=json'
+  );
+
+  const r = await fetchWithRefresh(csvUrl);
+  const j = await r.json();
+  if (!j.report) return;
+
+  const ctx = { authN: true, authZ: true };
+  const sorted = sortReport(
+    j.report,
+    sortState.col,
+    sortState.dir,
+    ctx
+  );
+
+  const headers = Object.keys(sorted[0]);
+  const lines = [
+    headers.join(','),
+    ...sorted.map(r =>
+      headers.map(h =>
+        `"${String(r[h] ?? '').replace(/"/g,'""')}"`
+      ).join(',')
+    )
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+
+  const a2 = document.createElement('a');
+  a2.href = url;
+  // a2.download = 'esm-export.csv';
+  a2.click();
+  URL.revokeObjectURL(url);
+}
+
+
+function appendRequestorParams(url){
+  const sel = document.getElementById('fltr_requestorid');
+  if(!sel) return url;
+
+  const ids = [...sel.selectedOptions]
+    .map(o=>o.value)
+    .filter(Boolean);
+
+  if(!ids.length) return url;
+
+  const sep = url.includes('?') ? '&' : '?';
+  return url + sep + ids.map(id =>
+    'requestor-id=' + encodeURIComponent(id)
+  ).join('&');
+}
+function onRequestorChange(){
+  // purely declarative — no fetch yet
+  console.log(
+    'Active requestor-id filter:',
+    [...fltr_requestorid.selectedOptions].map(o=>o.value)
+  );
+}
+
+loadRequestorIds();
+// refreshHeaderStates();
+esmSortStack = JSON.parse(localStorage.getItem('esmSort')) || [{ col: 'DATE', dir: 'DESC' }];
+
+</script>
+</body>
+</html>
