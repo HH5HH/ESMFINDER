@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[PRO]</title>
+    <style>
+        /* Adobe Spectrum CSS Design Tokens */
+        :root {
+            /* Spectrum Colors - Light Theme */
+            --spectrum-global-color-gray-50: #fafafa;
+            --spectrum-global-color-gray-75: #f5f5f5;
+            --spectrum-global-color-gray-100: #eaeaea;
+            --spectrum-global-color-gray-200: #e1e1e1;
+            --spectrum-global-color-gray-300: #cacaca;
+            --spectrum-global-color-gray-400: #b3b3b3;
+            --spectrum-global-color-gray-500: #8e8e8e;
+            --spectrum-global-color-gray-600: #6e6e6e;
+            --spectrum-global-color-gray-700: #4a4a4a;
+            --spectrum-global-color-gray-800: #2c2c2c;
+            --spectrum-global-color-gray-900: #080808;
+            
+            /* Spectrum Blue (Primary) */
+            --spectrum-global-color-blue-300: #5dade2;
+            --spectrum-global-color-blue-400: #2680eb;
+            --spectrum-global-color-blue-500: #1473e6;
+            --spectrum-global-color-blue-600: #0d66d0;
+            --spectrum-global-color-blue-700: #095aba;
+            
+            /* Spectrum Green (Success) */
+            --spectrum-global-color-green-300: #4ecdc4;
+            --spectrum-global-color-green-400: #2d9d78;
+            --spectrum-global-color-green-500: #268e6c;
+            --spectrum-global-color-green-600: #12805c;
+            
+            /* Spectrum Red (Error) */
+            --spectrum-global-color-red-300: #f1948a;
+            --spectrum-global-color-red-400: #e34850;
+            --spectrum-global-color-red-500: #d7373f;
+            --spectrum-global-color-red-600: #c6363f;
+            
+            /* Spectrum Orange (Warning) */
+            --spectrum-global-color-orange-300: #f5b041;
+            --spectrum-global-color-orange-400: #e68619;
+            --spectrum-global-color-orange-500: #da7b11;
+            
+            /* Spectrum Spacing */
+            --spectrum-global-dimension-size-25: 2px;
+            --spectrum-global-dimension-size-50: 4px;
+            --spectrum-global-dimension-size-75: 6px;
+            --spectrum-global-dimension-size-100: 8px;
+            --spectrum-global-dimension-size-150: 12px;
+            --spectrum-global-dimension-size-200: 16px;
+            --spectrum-global-dimension-size-250: 20px;
+            --spectrum-global-dimension-size-300: 24px;
+            --spectrum-global-dimension-size-400: 32px;
+            --spectrum-global-dimension-size-500: 40px;
+            --spectrum-global-dimension-size-600: 48px;
+            --spectrum-global-dimension-size-700: 56px;
+            --spectrum-global-dimension-size-800: 64px;
+            
+            /* Spectrum Typography */
+            --spectrum-alias-body-text-font-family: adobe-clean, 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --spectrum-alias-code-text-font-family: 'Source Code Pro', Monaco, 'Courier New', monospace;
+            --spectrum-alias-font-size-default: 14px;
+            --spectrum-alias-line-height-default: 1.5;
+            
+            /* Spectrum Border Radius */
+            --spectrum-alias-border-radius-small: 4px;
+            --spectrum-alias-border-radius-regular: 6px;
+            --spectrum-alias-border-radius-large: 8px;
+            
+            /* Spectrum Shadows */
+            --spectrum-alias-shadow-color: rgba(0, 0, 0, 0.15);
+            --spectrum-alias-shadow-size-small: 0 1px 2px;
+            --spectrum-alias-shadow-size-medium: 0 2px 4px;
+            --spectrum-alias-shadow-size-large: 0 4px 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--spectrum-alias-body-text-font-family);
+            font-size: var(--spectrum-alias-font-size-default);
+            line-height: var(--spectrum-alias-line-height-default);
+            background: var(--spectrum-global-color-gray-75);
+            color: var(--spectrum-global-color-gray-800);
+            min-height: 100vh;
+            padding: var(--spectrum-global-dimension-size-250);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--spectrum-global-color-gray-50);
+            border-radius: var(--spectrum-alias-border-radius-large);
+            box-shadow: var(--spectrum-alias-shadow-size-medium) var(--spectrum-alias-shadow-color);
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--spectrum-global-color-gray-900);
+            color: var(--spectrum-global-color-gray-50);
+            padding: var(--spectrum-global-dimension-size-200) var(--spectrum-global-dimension-size-400);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: var(--spectrum-global-dimension-size-200);
+            border-bottom: 1px solid var(--spectrum-global-color-gray-700);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: var(--spectrum-global-dimension-size-200);
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .header-status {
+            font-size: 12px;
+            padding: var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-150);
+            border-radius: var(--spectrum-alias-border-radius-regular);
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            flex: 1;
+            max-width: none;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            overflow: visible;
+            line-height: 1.4;
+        }
+
+        .content {
+            padding: var(--spectrum-global-dimension-size-400);
+            display: none; /* Hidden by default until authenticated */
+        }
+
+        .content.authenticated {
+            display: block; /* Show only when authenticated */
+        }
+
+        .picker-section {
+            margin-bottom: var(--spectrum-global-dimension-size-400);
+        }
+
+        .picker-row {
+            display: flex;
+            flex-direction: row;
+            gap: var(--spectrum-global-dimension-size-300);
+            margin-top: var(--spectrum-global-dimension-size-250);
+        }
+
+        .picker-row .picker-col {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .picker-row .picker-col label {
+            margin-top: 0;
+        }
+
+        .picker-section label {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: var(--spectrum-global-dimension-size-150);
+            color: var(--spectrum-global-color-gray-800);
+        }
+
+        .programmer-select {
+            width: 100%;
+            padding: var(--spectrum-global-dimension-size-150) var(--spectrum-global-dimension-size-200);
+            font-size: var(--spectrum-alias-font-size-default);
+            font-family: var(--spectrum-alias-body-text-font-family);
+            border: 1px solid var(--spectrum-global-color-gray-300);
+            border-radius: var(--spectrum-alias-border-radius-regular);
+            background: var(--spectrum-global-color-gray-50);
+            color: var(--spectrum-global-color-gray-800);
+            cursor: pointer;
+            transition: border-color 130ms ease-out, box-shadow 130ms ease-out;
+        }
+
+        .programmer-select:hover:not(:disabled) {
+            border-color: var(--spectrum-global-color-gray-400);
+        }
+
+        .programmer-select:focus {
+            outline: none;
+            border-color: var(--spectrum-global-color-blue-500);
+            box-shadow: 0 0 0 1px var(--spectrum-global-color-blue-500);
+        }
+
+        .programmer-select:disabled {
+            background: var(--spectrum-global-color-gray-100);
+            color: var(--spectrum-global-color-gray-500);
+            cursor: not-allowed;
+        }
+
+        .metadata-section {
+            margin-top: var(--spectrum-global-dimension-size-400);
+        }
+
+        .metadata-section h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: var(--spectrum-global-dimension-size-250);
+            color: var(--spectrum-global-color-gray-800);
+            border-bottom: 2px solid var(--spectrum-global-color-blue-500);
+            padding-bottom: var(--spectrum-global-dimension-size-100);
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: color 130ms ease-out;
+        }
+
+        .metadata-section h2:hover {
+            color: var(--spectrum-global-color-blue-600);
+        }
+
+        .metadata-section h2 .collapse-icon {
+            font-size: 16px;
+            transition: transform 200ms ease-out;
+            margin-left: var(--spectrum-global-dimension-size-100);
+        }
+
+        .metadata-section h2.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .metadata-container {
+            background: var(--spectrum-global-color-gray-75);
+            border-radius: var(--spectrum-alias-border-radius-large);
+            padding: var(--spectrum-global-dimension-size-250);
+            max-height: 70vh;
+            overflow-y: auto;
+            transition: max-height 300ms ease-out, opacity 200ms ease-out, padding 300ms ease-out;
+        }
+
+        .metadata-container.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-bottom: 0;
+        }
+
+        .metadata-item {
+            margin-bottom: var(--spectrum-global-dimension-size-250);
+            padding: var(--spectrum-global-dimension-size-200);
+            background: var(--spectrum-global-color-gray-50);
+            border-radius: var(--spectrum-alias-border-radius-regular);
+            border-left: 3px solid var(--spectrum-global-color-blue-500);
+            box-shadow: var(--spectrum-alias-shadow-size-small) var(--spectrum-alias-shadow-color);
+        }
+
+        .metadata-key {
+            font-weight: 700;
+            color: var(--spectrum-global-color-blue-600);
+            font-size: 15px;
+            margin-bottom: var(--spectrum-global-dimension-size-100);
+            text-transform: capitalize;
+        }
+
+        .metadata-value {
+            color: var(--spectrum-global-color-gray-700);
+            word-break: break-word;
+            font-family: var(--spectrum-alias-code-text-font-family);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .metadata-value pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--spectrum-global-dimension-size-700) var(--spectrum-global-dimension-size-250);
+            color: var(--spectrum-global-color-gray-500);
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: var(--spectrum-global-dimension-size-250);
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: var(--spectrum-global-dimension-size-500);
+            color: var(--spectrum-global-color-blue-600);
+            font-size: 16px;
+        }
+
+        .array-item, .object-item {
+            margin-left: var(--spectrum-global-dimension-size-250);
+            margin-top: var(--spectrum-global-dimension-size-50);
+            padding-left: var(--spectrum-global-dimension-size-200);
+            border-left: 1px solid var(--spectrum-global-color-gray-200);
+        }
+
+        .null-value {
+            color: var(--spectrum-global-color-gray-500);
+            font-style: italic;
+        }
+
+        .string-value {
+            color: var(--spectrum-global-color-green-600);
+        }
+
+        .number-value {
+            color: var(--spectrum-global-color-blue-600);
+        }
+
+        .boolean-value {
+            color: var(--spectrum-global-color-red-500);
+        }
+
+        /* Spectrum Scrollbar styling */
+        .metadata-container::-webkit-scrollbar {
+            width: var(--spectrum-global-dimension-size-100);
+        }
+
+        .metadata-container::-webkit-scrollbar-track {
+            background: var(--spectrum-global-color-gray-100);
+            border-radius: var(--spectrum-alias-border-radius-regular);
+        }
+
+        .metadata-container::-webkit-scrollbar-thumb {
+            background: var(--spectrum-global-color-gray-400);
+            border-radius: var(--spectrum-alias-border-radius-regular);
+        }
+
+        .metadata-container::-webkit-scrollbar-thumb:hover {
+            background: var(--spectrum-global-color-gray-500);
+        }
+
+        .file-status-success {
+            background: var(--spectrum-global-color-green-400);
+            color: var(--spectrum-global-color-gray-50);
+            border: 1px solid var(--spectrum-global-color-green-500);
+        }
+
+        .file-status-error {
+            background: var(--spectrum-global-color-red-400);
+            color: var(--spectrum-global-color-gray-50);
+            border: 1px solid var(--spectrum-global-color-red-500);
+        }
+
+        .application-link {
+            color: var(--spectrum-global-color-blue-600);
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 1px solid var(--spectrum-global-color-blue-500);
+            transition: all 130ms ease-out;
+            display: inline-block;
+        }
+
+        .application-link:hover {
+            color: var(--spectrum-global-color-blue-700);
+            border-bottom-color: var(--spectrum-global-color-blue-700);
+            background: rgba(38, 128, 235, 0.1);
+            padding: 2px 4px;
+            border-radius: var(--spectrum-alias-border-radius-small);
+        }
+
+        .application-link:visited {
+            color: var(--spectrum-global-color-blue-700);
+        }
+
+        #authBtn {
+            padding: var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-200);
+            font-size: 12px;
+            background: var(--spectrum-global-color-blue-600);
+            color: var(--spectrum-global-color-gray-50);
+            border: 1px solid var(--spectrum-global-color-blue-500);
+            border-radius: var(--spectrum-alias-border-radius-regular);
+            cursor: pointer;
+            transition: all 130ms ease-out;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #authBtn:hover {
+            background: var(--spectrum-global-color-blue-500);
+            border-color: var(--spectrum-global-color-blue-400);
+        }
+
+        #authBtn:active {
+            background: var(--spectrum-global-color-blue-700);
+            transform: scale(0.98);
+        }
+
+        #cancelLoginBtn:hover {
+            background: var(--spectrum-global-color-red-600);
+        }
+
+        #cancelLoginBtn:active {
+            background: var(--spectrum-global-color-red-600);
+            transform: scale(0.98);
+        }
+
+        #closeModalBtn:hover {
+            color: var(--spectrum-global-color-gray-700);
+        }
+
+
+        #loginModal {
+            display: none;
+        }
+
+        #loginModal.show {
+            display: flex !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-right">
+                <div id="authMessage" class="header-status"></div>
+                <button id="authBtn">LOGIN HERE</button>
+            </div>
+        </div>
+        <div class="content">
+            
+            <!-- Modal overlay for login popup -->
+            <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); z-index: 10000; justify-content: center; align-items: center;">
+                <div style="background: var(--spectrum-global-color-gray-50); border-radius: var(--spectrum-alias-border-radius-large); padding: var(--spectrum-global-dimension-size-400); max-width: 500px; width: 90%; box-shadow: var(--spectrum-alias-shadow-size-large) var(--spectrum-alias-shadow-color); position: relative;">
+                    <button id="closeModalBtn" style="position: absolute; top: var(--spectrum-global-dimension-size-200); right: var(--spectrum-global-dimension-size-200); background: none; border: none; font-size: 24px; cursor: pointer; color: var(--spectrum-global-color-gray-500); transition: color 130ms ease-out;">&times;</button>
+                    <h2 style="margin-bottom: var(--spectrum-global-dimension-size-200); color: var(--spectrum-global-color-gray-800); font-size: 20px; font-weight: 700;">Adobe Experience Cloud Login</h2>
+                    <p style="margin-bottom: var(--spectrum-global-dimension-size-250); color: var(--spectrum-global-color-gray-600); font-size: var(--spectrum-alias-font-size-default);">Please complete the login in the popup window. This window will close automatically after successful authentication.</p>
+                    <div id="modalStatus" style="padding: var(--spectrum-global-dimension-size-100); border-radius: var(--spectrum-alias-border-radius-regular); background: var(--spectrum-global-color-blue-400); color: var(--spectrum-global-color-gray-50); margin-bottom: var(--spectrum-global-dimension-size-200);">
+                        Opening login window...
+                    </div>
+                    <button id="cancelLoginBtn" style="padding: var(--spectrum-global-dimension-size-100) var(--spectrum-global-dimension-size-250); background: var(--spectrum-global-color-red-500); color: var(--spectrum-global-color-gray-50); border: none; border-radius: var(--spectrum-alias-border-radius-regular); cursor: pointer; width: 100%; font-weight: 700; transition: background-color 130ms ease-out;">
+                        Cancel Login
+                    </button>
+                </div>
+            </div>
+            <div class="picker-section">
+                <div class="picker-row">
+                    <div class="picker-col">
+                        <label for="programmerSelect">Select a Programmer (Media-Company):</label>
+                        <select id="programmerSelect" class="programmer-select" disabled>
+                            <option value="">-- Please login first --</option>
+                        </select>
+                    </div>
+                    <div class="picker-col">
+                        <label for="contentProviderSelect">Content Provider (RequestorId):</label>
+                        <select id="contentProviderSelect" class="programmer-select" disabled>
+                            <option value="">-- Select a Programmer first --</option>
+                        </select>
+                    </div>
+                </div>
+                <label for="mvpdSelect" style="display: block; margin-top: var(--spectrum-global-dimension-size-250);">MVPDs from config:</label>
+                <select id="mvpdSelect" class="programmer-select" disabled>
+                    <option value="">-- Select a Content Provider first --</option>
+                </select>
+            </div>
+            <div class="metadata-section">
+                <h2 id="metadataHeader" style="cursor: pointer;">
+                    <span>Metadata</span>
+                    <span class="collapse-icon">▼</span>
+                </h2>
+                <div id="metadataContainer" class="metadata-container">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>Select a programmer from the dropdown above to view their metadata</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let programmersData = null;
+        let isAuthenticated = false;
+        let statusMessageTimeout = null; // Track timeout for auto-clearing messages
+        const ADOBE_IMS_BASE = 'https://ims-na1.adobelogin.com';
+        const ADOBE_EXPERIENCE_BASE = 'https://experience.adobe.com';
+        const ADOBE_CONSOLE_BASE = 'https://console.auth.adobe.com'; // API endpoints may still use this
+        const ADOBE_TVE_DASHBOARD = 'https://experience.adobe.com/#/@adobepass/pass/authentication/release-production';
+        const ADOBE_CLIENT_ID = 'AdobePass1';
+        const ADOBE_SCOPES = 'openid,AdobeID,read_organizations,additional_info.projectedProductContext,write_pc';
+
+        // Check authentication status
+        async function checkAuthentication() {
+            try {
+                // Skip the test endpoint (it returns 406) and go straight to verifying with programmers API
+                // This is the most reliable way to check authentication
+                return await verifyAuthWithProgrammersApi();
+            } catch (error) {
+                console.log('Auth check error:', error);
+                updateAuthStatus(false, 'Authentication status unknown');
+                return false;
+            }
+        }
+
+        // Verify auth by trying to fetch programmers from API
+        async function verifyAuthWithProgrammersApi() {
+            try {
+                // Use the correct endpoint from CURL: /rest/api/entity/Programmer
+                // Try with and without configurationVersion parameter
+                const possibleEndpoints = [
+                    `${ADOBE_CONSOLE_BASE}/rest/api/entity/Programmer`,
+                    `${ADOBE_CONSOLE_BASE}/rest/api/entity/Programmer?configurationVersion=3522`,
+                    `${ADOBE_CONSOLE_BASE}/rest/api/programmers`,
+                    `${ADOBE_CONSOLE_BASE}/rest/api/v1/programmers`
+                ];
+
+                for (const apiUrl of possibleEndpoints) {
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'GET',
+                            credentials: 'include',
+                            mode: 'cors',
+                            headers: {
+                                'Accept': 'application/json, text/plain, */*',
+                                'Origin': 'https://cdn.experience.adobe.net',
+                                'Referer': 'https://cdn.experience.adobe.net/'
+                            }
+                        });
+
+                        if (response.ok) {
+                            updateAuthStatus(true, 'Authenticated');
+                            window.programmersApiEndpoint = apiUrl; // Store working endpoint
+                            return true;
+                        } else if (response.status === 401 || response.status === 403) {
+                            const errorData = await response.json().catch(() => ({}));
+                            if (errorData.error === 'unauthorized' || errorData.error === 'access_denied') {
+                                updateAuthStatus(false, 'Not authenticated');
+                                return false;
+                            }
+                        }
+                    } catch (e) {
+                        // Try next endpoint
+                        continue;
+                    }
+                }
+
+                // If we get here, endpoints don't exist or returned other errors
+                // But user might still be authenticated (cookies might work for downloads)
+                // Since we couldn't verify with any endpoint, assume not authenticated for safety
+                updateAuthStatus(false, 'Cannot verify authentication - please login');
+                return false;
+            } catch (error) {
+                updateAuthStatus(false, 'Cannot verify authentication');
+                return false;
+            }
+        }
+
+        // Clear status message
+        function clearStatusMessage() {
+            const authMessage = document.getElementById('authMessage');
+            authMessage.textContent = '';
+            authMessage.innerHTML = '';
+            authMessage.style.background = '';
+            authMessage.style.color = '';
+            authMessage.style.border = '';
+            authMessage.style.borderLeft = '';
+            authMessage.style.padding = '';
+            authMessage.style.fontWeight = '';
+        }
+
+        // Unified status message handler with auto-expiration
+        function updateStatusMessage(message, type = 'info', autoExpire = true) {
+            const authMessage = document.getElementById('authMessage');
+            
+            // Clear any existing timeout
+            if (statusMessageTimeout) {
+                clearTimeout(statusMessageTimeout);
+                statusMessageTimeout = null;
+            }
+            
+            // Set message content (supports HTML)
+            if (typeof message === 'string' && (message.includes('<') || message.includes('\n'))) {
+                // If message contains HTML tags or newlines, use innerHTML
+                if (message.includes('\n') && !message.includes('<')) {
+                    authMessage.innerHTML = message.replace(/\n/g, '<br>');
+                } else {
+                    authMessage.innerHTML = message;
+                }
+            } else {
+                authMessage.textContent = message;
+            }
+            
+            // Reset styles
+            authMessage.style.background = '';
+            authMessage.style.color = '';
+            authMessage.style.border = '';
+            authMessage.style.borderLeft = '';
+            authMessage.style.padding = '';
+            authMessage.style.fontWeight = '';
+            
+            // Apply styles based on type (dark theme optimized)
+            switch(type) {
+                case 'loading':
+                    authMessage.style.background = 'rgba(55, 142, 240, 0.2)';
+                    authMessage.style.color = 'var(--spectrum-global-color-blue-300)';
+                    authMessage.style.border = '1px solid rgba(55, 142, 240, 0.4)';
+                    authMessage.style.padding = 'var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-150)';
+                    break;
+                case 'success':
+                    authMessage.style.background = 'rgba(45, 157, 120, 0.2)';
+                    authMessage.style.color = 'var(--spectrum-global-color-green-300)';
+                    authMessage.style.border = '1px solid rgba(45, 157, 120, 0.4)';
+                    authMessage.style.padding = 'var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-150)';
+                    break;
+                case 'error':
+                    authMessage.style.background = 'rgba(227, 72, 80, 0.2)';
+                    authMessage.style.color = 'var(--spectrum-global-color-red-300)';
+                    authMessage.style.border = '1px solid rgba(227, 72, 80, 0.4)';
+                    authMessage.style.padding = 'var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-150)';
+                    // Errors are fatal - don't auto-expire
+                    autoExpire = false;
+                    break;
+                case 'warning':
+                    authMessage.style.background = 'rgba(230, 134, 25, 0.2)';
+                    authMessage.style.color = 'var(--spectrum-global-color-orange-300)';
+                    authMessage.style.border = '1px solid rgba(230, 134, 25, 0.4)';
+                    authMessage.style.padding = 'var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-150)';
+                    authMessage.style.fontWeight = '600';
+                    break;
+                case 'info':
+                default:
+                    authMessage.style.background = 'rgba(255, 255, 255, 0.05)';
+                    authMessage.style.color = 'var(--spectrum-global-color-gray-300)';
+                    authMessage.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                    authMessage.style.padding = 'var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-150)';
+                    break;
+            }
+            
+            // Auto-expire non-fatal messages after 5 seconds
+            if (autoExpire && message) {
+                statusMessageTimeout = setTimeout(() => {
+                    clearStatusMessage();
+                    statusMessageTimeout = null;
+                }, 5000);
+            }
+        }
+
+        // Update authentication status UI
+        function updateAuthStatus(authenticated, message) {
+            isAuthenticated = authenticated;
+            const authBtn = document.getElementById('authBtn');
+            const programmerSelect = document.getElementById('programmerSelect');
+            const contentArea = document.querySelector('.content');
+
+            if (authenticated) {
+                // Show the working area
+                contentArea.classList.add('authenticated');
+                
+                authBtn.textContent = '🔄 Refresh Session';
+                updateStatusMessage('Loading programmer data from API...', 'loading');
+                
+                // Automatically load programmers from API
+                loadProgrammersFromAPI();
+            } else {
+                // Hide the working area - only show header console
+                contentArea.classList.remove('authenticated');
+                
+                authBtn.textContent = 'LOGIN HERE';
+                updateStatusMessage('⚠️ Ahoy there buckaroo, this tool requires authentication. Please login using the button, and close the popup once you\'re done', 'warning');
+                programmerSelect.disabled = true;
+                programmerSelect.innerHTML = '<option value="">-- Please login first --</option>';
+            }
+        }
+
+        let loginPopup = null;
+        let loginCheckInterval = null;
+
+        // Initiate Adobe login via popup
+        function initiateAdobeLogin() {
+            // Show modal
+            const modal = document.getElementById('loginModal');
+            modal.classList.add('show');
+            
+            const modalStatus = document.getElementById('modalStatus');
+            modalStatus.textContent = 'Opening login window...';
+            modalStatus.style.background = '#e7f3ff';
+            modalStatus.style.color = '#0066cc';
+
+            // Open TVE Dashboard in popup
+            const popupWidth = 800;
+            const popupHeight = 600;
+            const left = (window.screen.width - popupWidth) / 2;
+            const top = (window.screen.height - popupHeight) / 2;
+            
+            loginPopup = window.open(
+                ADOBE_TVE_DASHBOARD,
+                'AdobeLogin',
+                `width=${popupWidth},height=${popupHeight},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+            );
+
+            if (!loginPopup) {
+                modalStatus.textContent = 'Popup blocked! Please allow popups and try again.';
+                modalStatus.style.background = '#f8d7da';
+                modalStatus.style.color = '#721c24';
+                return;
+            }
+
+            // Monitor popup for closure or successful login
+            loginCheckInterval = setInterval(() => {
+                if (loginPopup.closed) {
+                    clearInterval(loginCheckInterval);
+                    modalStatus.textContent = 'Login window closed. Checking authentication...';
+                    modalStatus.style.background = '#fff3cd';
+                    modalStatus.style.color = '#856404';
+                    
+                    // Wait a moment for cookies to be set, then check auth
+                    setTimeout(async () => {
+                        const authenticated = await checkAuthentication();
+                        if (authenticated) {
+                            modalStatus.textContent = '✓ Login successful! Loading data...';
+                            modalStatus.style.background = '#d4edda';
+                            modalStatus.style.color = '#155724';
+                            setTimeout(() => {
+                                modal.classList.remove('show');
+                                // Data will be loaded automatically by updateAuthStatus
+                            }, 1500);
+                        } else {
+                            modalStatus.textContent = 'Login may not have completed. Please try again.';
+                            modalStatus.style.background = '#f8d7da';
+                            modalStatus.style.color = '#721c24';
+                        }
+                    }, 1000);
+                } else {
+                    // Check if popup has navigated to a success page
+                    try {
+                        const popupUrl = loginPopup.location.href;
+                        if (popupUrl && (popupUrl.includes('experience.adobe.com') || popupUrl.includes('console.auth.adobe.com'))) {
+                            // Popup is on Adobe domain, might be logged in
+                            // We'll wait for popup to close to check
+                        }
+                    } catch (e) {
+                        // Cross-origin, can't access - this is normal
+                    }
+                }
+            }, 500);
+        }
+
+        // Close modal handlers
+        document.getElementById('closeModalBtn').addEventListener('click', function() {
+            if (loginPopup && !loginPopup.closed) {
+                loginPopup.close();
+            }
+            if (loginCheckInterval) {
+                clearInterval(loginCheckInterval);
+            }
+            document.getElementById('loginModal').classList.remove('show');
+        });
+
+        document.getElementById('cancelLoginBtn').addEventListener('click', function() {
+            if (loginPopup && !loginPopup.closed) {
+                loginPopup.close();
+            }
+            if (loginCheckInterval) {
+                clearInterval(loginCheckInterval);
+            }
+            document.getElementById('loginModal').classList.remove('show');
+        });
+
+        // Generate request ID for API calls
+        function generateRequestId() {
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 1000000);
+            return `${timestamp}-${random}`;
+        }
+
+        // Load programmers from API using the correct endpoint from CURL
+        async function loadProgrammersFromAPI() {
+            const select = document.getElementById('programmerSelect');
+            
+            updateStatusMessage('Loading programmers from API...', 'loading');
+            select.disabled = true;
+            select.innerHTML = '<option value="">Loading...</option>';
+            
+            try {
+                // Use the correct endpoint from CURL: /rest/api/entity/Programmer
+                // Try with and without configurationVersion, and try stored endpoint first
+                const endpoints = window.programmersApiEndpoint 
+                    ? [window.programmersApiEndpoint]
+                    : [
+                        `${ADOBE_CONSOLE_BASE}/rest/api/entity/Programmer?configurationVersion=3522`,
+                        `${ADOBE_CONSOLE_BASE}/rest/api/entity/Programmer`,
+                        `${ADOBE_CONSOLE_BASE}/rest/api/programmers`,
+                        `${ADOBE_CONSOLE_BASE}/rest/api/v1/programmers`
+                    ];
+
+                let lastError = null;
+                for (const apiUrl of endpoints) {
+                    try {
+                        // Build headers matching the CURL request
+                        const headers = {
+                            'Accept': 'application/json, text/plain, */*',
+                            'Origin': 'https://cdn.experience.adobe.net',
+                            'Referer': 'https://cdn.experience.adobe.net/',
+                            'ap-request-id': generateRequestId()
+                        };
+
+                        // Try to get CSRF token from cookies if available
+                        // Note: We can't directly read cookies due to security, but browser will send them
+                        const response = await fetch(apiUrl, {
+                            method: 'GET',
+                            credentials: 'include', // This sends cookies automatically
+                            mode: 'cors',
+                            headers: headers
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            
+                            // Handle different response formats
+                            if (Array.isArray(data)) {
+                                // If response is array, wrap it in entities format
+                                programmersData = {
+                                    count: data.length,
+                                    entities: data.map(item => ({
+                                        key: item.key || `Programmer:${item.entityData?.id || 'unknown'}`,
+                                        version: item.version || 1,
+                                        entityData: item.entityData || item
+                                    }))
+                                };
+                            } else if (data.entities) {
+                                // Already in expected format
+                                programmersData = data;
+                            } else {
+                                // Single entity or other format
+                                programmersData = {
+                                    count: 1,
+                                    entities: [{
+                                        key: data.key || `Programmer:${data.entityData?.id || 'unknown'}`,
+                                        version: data.version || 1,
+                                        entityData: data.entityData || data
+                                    }]
+                                };
+                            }
+                            
+                            const count = programmersData.count || programmersData.entities?.length || 0;
+                            updateStatusMessage(`✓ Loaded ${count} programmers from API. Select a programmer to view details.`, 'success');
+                            select.disabled = false;
+                            populateSelect();
+                            window.programmersApiEndpoint = apiUrl; // Store working endpoint
+                            return;
+                        } else if (response.status === 401 || response.status === 403) {
+                            const errorData = await response.json().catch(() => ({}));
+                            if (errorData.error === 'unauthorized' || errorData.error === 'access_denied') {
+                                throw new Error('Authentication required. Please login first.');
+                            }
+                            throw new Error(`Access denied: ${response.status} ${response.statusText}`);
+                        } else {
+                            lastError = new Error(`API error: ${response.status} ${response.statusText}`);
+                            continue; // Try next endpoint
+                        }
+                    } catch (error) {
+                        if (error.message.includes('Authentication') || error.message.includes('Access denied')) {
+                            throw error; // Don't try other endpoints for auth errors
+                        }
+                        lastError = error;
+                        continue;
+                    }
+                }
+
+                // If we get here, all endpoints failed
+                throw lastError || new Error('Unable to find valid API endpoint. Please use file upload instead.');
+            } catch (error) {
+                console.error('Error loading from API:', error);
+                updateStatusMessage(`✗ Error: ${error.message}`, 'error');
+                select.disabled = true;
+                select.innerHTML = '<option value="">Error loading data</option>';
+                
+                // If auth error, prompt to login
+                if (error.message.includes('Authentication') || error.message.includes('Access denied')) {
+                    updateAuthStatus(false, 'Authentication required');
+                    setTimeout(() => {
+                        if (confirm('Authentication required. Would you like to login now?')) {
+                            initiateAdobeLogin();
+                        }
+                    }, 500);
+                }
+            }
+        }
+
+
+        // Populate the select dropdown
+        function populateSelect() {
+            const select = document.getElementById('programmerSelect');
+            const entities = programmersData.entities || [];
+
+            // Clear existing options (including "Loading...")
+            select.innerHTML = '';
+            
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '-- Choose a Programmer --';
+            select.appendChild(defaultOption);
+
+            // Build options and sort A-Z by display text (numbers sort before letters with localeCompare)
+            const options = entities.map((entity, index) => {
+                const displayName = entity.entityData?.displayName || 'Unknown';
+                const id = entity.entityData?.id || 'Unknown';
+                return { value: index, text: `${displayName} - ${id}` };
+            });
+            options.sort((a, b) => String(a.text).localeCompare(String(b.text), undefined, { sensitivity: 'base' }));
+
+            options.forEach(({ value, text }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                select.appendChild(option);
+            });
+        }
+
+        // Extract GUID from RegisteredApplication string
+        function extractApplicationGuid(appString) {
+            const match = appString.match(/^@RegisteredApplication:(.+)$/);
+            return match ? match[1] : null;
+        }
+
+        // Extract Content Provider ID from string
+        function extractContentProviderId(cpString) {
+            const match = cpString.match(/^@ContentProvider:(.+)$/);
+            return match ? match[1] : null;
+        }
+
+        // Populate content provider dropdown
+        function populateContentProviders(programmerIndex) {
+            const select = document.getElementById('contentProviderSelect');
+            const mvpdSelect = document.getElementById('mvpdSelect');
+            
+            // Clear existing options
+            select.innerHTML = '';
+            
+            // Clear MVPD dropdown when programmer changes
+            mvpdSelect.innerHTML = '';
+            mvpdSelect.disabled = true;
+            const mvpdDefaultOption = document.createElement('option');
+            mvpdDefaultOption.value = '';
+            mvpdDefaultOption.textContent = '-- Select a Content Provider first --';
+            mvpdSelect.appendChild(mvpdDefaultOption);
+            
+            if (programmerIndex === '' || !programmersData) {
+                select.disabled = true;
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- Select a Programmer first --';
+                select.appendChild(defaultOption);
+                return;
+            }
+
+            const entity = programmersData.entities[programmerIndex];
+            const entityData = entity.entityData || {};
+            const contentProviders = entityData.contentProviders || [];
+            
+            if (contentProviders.length === 0) {
+                select.disabled = true;
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- No Content Providers available --';
+                select.appendChild(defaultOption);
+                return;
+            }
+
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '-- Choose a Content Provider --';
+            select.appendChild(defaultOption);
+
+            // Extract IDs and sort A-Z (numbers sort before letters with localeCompare)
+            const cpIds = contentProviders
+                .map((cpRef) => extractContentProviderId(cpRef))
+                .filter(Boolean);
+            cpIds.sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }));
+
+            cpIds.forEach((cpId) => {
+                const option = document.createElement('option');
+                option.value = cpId;
+                option.textContent = cpId;
+                select.appendChild(option);
+            });
+
+            select.disabled = false;
+        }
+
+        // MVPD cache by requestor ID
+        let mvpdCacheByRequestor = new Map();
+
+        // Load MVPDs from config for a given requestor ID (content provider)
+        async function loadMvpdsFromConfig(requestorId) {
+            if (!requestorId || requestorId === '') {
+                return new Map();
+            }
+
+            // Check cache first
+            if (mvpdCacheByRequestor.has(requestorId)) {
+                return mvpdCacheByRequestor.get(requestorId);
+            }
+
+            const mvpdMap = new Map();
+            try {
+                // Build config URL: https://sp.auth.adobe.com/api/v1/config/{requestorId}
+                const configUrl = `https://sp.auth.adobe.com/api/v1/config/${encodeURIComponent(requestorId)}`;
+                
+                // Note: sp.auth.adobe.com doesn't allow custom headers like ap-request-id in CORS
+                // Use minimal headers for this endpoint
+                const headers = {
+                    'Accept': 'application/xml, text/xml, */*'
+                };
+
+                const response = await fetch(configUrl, {
+                    method: 'GET',
+                    credentials: 'include',
+                    mode: 'cors',
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    console.warn(`Failed to load MVPDs from config for ${requestorId}:`, response.status, response.statusText);
+                    return mvpdMap;
+                }
+
+                const xmlText = await response.text();
+                
+                // Parse XML - handle both namespaced and non-namespaced XML
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(xmlText, 'application/xml');
+                
+                // Check for parsing errors
+                const parseError = xml.querySelector('parsererror');
+                if (parseError) {
+                    console.error('XML parsing error:', parseError.textContent);
+                    return mvpdMap;
+                }
+
+                // Query MVPD nodes - elements don't have namespace prefixes in the XML
+                const mvpdNodes = xml.querySelectorAll('mvpds > mvpd');
+                
+                if (mvpdNodes.length === 0) {
+                    console.warn('No MVPD nodes found in XML response');
+                    return mvpdMap;
+                }
+
+                mvpdNodes.forEach(mvpdNode => {
+                    // Get id element
+                    const idNode = mvpdNode.querySelector('id');
+                    if (!idNode) {
+                        return; // Skip if no id found
+                    }
+
+                    // Get displayName element
+                    const nameNode = mvpdNode.querySelector('displayName');
+
+                    // Get isProxy element
+                    const isProxyNode = mvpdNode.querySelector('isProxy');
+
+                    // Extract values
+                    const id = (idNode.textContent || '').trim();
+                    if (!id) {
+                        return; // Skip if id is empty
+                    }
+
+                    const nameRaw = (nameNode?.textContent || '').trim();
+                    const displayName = nameRaw || id; // Use id as fallback
+
+                    const isProxyTxt = (isProxyNode?.textContent || '').trim().toLowerCase();
+                    // Default to `true` (proxied) if missing/unparseable
+                    const isProxy = (isProxyTxt === 'false') ? false : true;
+
+                    // Store in map (id => { name: displayName, isProxy })
+                    if (!mvpdMap.has(id)) {
+                        mvpdMap.set(id, { name: displayName, isProxy });
+                    }
+                });
+
+                console.log(`Loaded ${mvpdMap.size} MVPDs from config for ${requestorId}`);
+            } catch (error) {
+                console.error('Error loading MVPDs from config for', requestorId, ':', error);
+            }
+
+            // Cache the result (even if empty, to avoid repeated failed requests)
+            mvpdCacheByRequestor.set(requestorId, mvpdMap);
+            return mvpdMap;
+        }
+
+        // Populate MVPD dropdown from config
+        async function populateMvpdsFromConfig(requestorId) {
+            const select = document.getElementById('mvpdSelect');
+            
+            // Clear existing options
+            select.innerHTML = '';
+            
+            if (!requestorId || requestorId === '') {
+                select.disabled = true;
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- Select a Content Provider first --';
+                select.appendChild(defaultOption);
+                return;
+            }
+
+            // Show loading state
+            select.disabled = true;
+            const loadingOption = document.createElement('option');
+            loadingOption.value = '';
+            loadingOption.textContent = 'Loading MVPDs...';
+            select.appendChild(loadingOption);
+
+            try {
+                // Load MVPDs from config
+                const mvpdMap = await loadMvpdsFromConfig(requestorId);
+                
+                // Clear loading option
+                select.innerHTML = '';
+                
+                if (mvpdMap.size === 0) {
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '-- No MVPDs available --';
+                    select.appendChild(defaultOption);
+                    select.disabled = true;
+                    return;
+                }
+
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- Choose an MVPD --';
+                select.appendChild(defaultOption);
+
+                // Convert map to array and sort A-Z by option display text (numbers sort before letters with localeCompare)
+                const entries = Array.from(mvpdMap.entries());
+                entries.sort((a, b) => {
+                    const aText = `${a[1].name || a[0]} (${a[0]})`;
+                    const bText = `${b[1].name || b[0]} (${b[0]})`;
+                    return String(aText).localeCompare(String(bText), undefined, { sensitivity: 'base' });
+                });
+
+                // Add MVPD options
+                entries.forEach(([id, meta]) => {
+                    const displayName = meta.name || id;
+                    const isProxy = meta.isProxy !== false; // Default to true
+                    
+                    const option = document.createElement('option');
+                    // Value = MVPD id
+                    option.value = id;
+                    // Text = displayName (id)
+                    option.textContent = `${displayName} (${id})`;
+                    
+                    // Direct MVPDs (isProxy=false) in bold, Proxied in regular weight
+                    if (isProxy === false) {
+                        option.style.fontWeight = '700';
+                    } else {
+                        option.style.fontWeight = '400';
+                    }
+                    
+                    select.appendChild(option);
+                });
+
+                select.disabled = false;
+            } catch (error) {
+                console.error('Error populating MVPDs:', error);
+                select.innerHTML = '';
+                const errorOption = document.createElement('option');
+                errorOption.value = '';
+                errorOption.textContent = `-- Error loading MVPDs: ${error.message} --`;
+                select.appendChild(errorOption);
+                select.disabled = true;
+            }
+        }
+
+        // Experience Cloud base URL for IMS Org links
+        const EXPERIENCE_ADOBE_BASE = 'https://experience.adobe.com';
+
+        // Returns true if the string looks like an IMS Org ID (e.g. 8DDE41805409FD450A4C98A5@AdobeOrg)
+        function isImsOrgId(str) {
+            return typeof str === 'string' && /@AdobeOrg$/i.test(str.trim());
+        }
+
+        // Format metadata value for display
+        function formatValue(value, depth = 0, keyName = '') {
+            if (value === null) {
+                return '<span class="null-value">null</span>';
+            }
+            
+            if (value === undefined) {
+                return '<span class="null-value">undefined</span>';
+            }
+
+            const type = typeof value;
+
+            if (type === 'string') {
+                // Check if this is a RegisteredApplication string
+                const guid = extractApplicationGuid(value);
+                if (guid) {
+                    const url = `${ADOBE_CONSOLE_BASE}/rest/api/applications/${guid}`;
+                    // Add click handler to ensure authentication
+                    return `<a href="${url}" target="_blank" class="application-link" title="Download application data" onclick="handleApplicationLinkClick(event, '${url}')">${value}</a>`;
+                }
+                // IMS Org ID: link to Experience Cloud home for that org (new tab)
+                if (isImsOrgId(value)) {
+                    const url = `${EXPERIENCE_ADOBE_BASE}/#/@${value}/home`;
+                    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="application-link" title="Open org in Experience Cloud">${value}</a>`;
+                }
+                // Truncate very long strings (like certificates)
+                if (value.length > 200) {
+                    return `<span class="string-value">"${value.substring(0, 200)}..." (${value.length} characters)</span>`;
+                }
+                return `<span class="string-value">"${value}"</span>`;
+            }
+
+            if (type === 'number') {
+                return `<span class="number-value">${value}</span>`;
+            }
+
+            if (type === 'boolean') {
+                return `<span class="boolean-value">${value}</span>`;
+            }
+
+            if (Array.isArray(value)) {
+                if (value.length === 0) {
+                    return '<span class="null-value">[]</span>';
+                }
+                let html = '<div>';
+                value.forEach((item, index) => {
+                    html += `<div class="array-item"><strong>[${index}]:</strong> ${formatValue(item, depth + 1, keyName)}</div>`;
+                });
+                html += '</div>';
+                return html;
+            }
+
+            if (type === 'object') {
+                const keys = Object.keys(value);
+                if (keys.length === 0) {
+                    return '<span class="null-value">{}</span>';
+                }
+                let html = '<div>';
+                keys.forEach(key => {
+                    html += `<div class="object-item"><strong>${key}:</strong> ${formatValue(value[key], depth + 1, key)}</div>`;
+                });
+                html += '</div>';
+                return html;
+            }
+
+            return String(value);
+        }
+
+        // Store applications data for current programmer
+        let currentApplicationsData = null;
+
+        // Fetch applications for a programmer
+        async function fetchApplicationsForProgrammer(programmerId) {
+            try {
+                const apiUrl = `${ADOBE_CONSOLE_BASE}/rest/api/applications?programmer=${encodeURIComponent(programmerId)}&configurationVersion=3522`;
+                
+                const headers = {
+                    'Accept': 'application/json, text/plain, */*',
+                    'Origin': 'https://cdn.experience.adobe.net',
+                    'Referer': 'https://cdn.experience.adobe.net/',
+                    'ap-request-id': generateRequestId()
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    credentials: 'include',
+                    mode: 'cors',
+                    headers: headers
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Store applications indexed by GUID for quick lookup
+                    currentApplicationsData = {};
+                    if (Array.isArray(data)) {
+                        data.forEach(app => {
+                            const guid = app.entityData?.id;
+                            if (guid) {
+                                currentApplicationsData[guid] = app.entityData;
+                            }
+                        });
+                    }
+                    return currentApplicationsData;
+                } else {
+                    console.warn('Failed to fetch applications:', response.status);
+                    return null;
+                }
+            } catch (error) {
+                console.warn('Error fetching applications:', error);
+                return null;
+            }
+        }
+
+        // PASS Console URL for programmer applications (legacy / no scopes)
+        const PASS_CONSOLE_PROGRAMMER_APPLICATIONS = 'https://experience.adobe.com/#/@adobepass/pass/authentication/release-production/programmers';
+
+        // Format applications with scope information. Only applications that have scopes are displayed.
+        // Legacy (no-scope) applications are not listed; a single link to PASS Console is shown instead.
+        function formatApplicationsWithScopes(applicationsArray, applicationsData, programmerId) {
+            if (!Array.isArray(applicationsArray) || applicationsArray.length === 0) {
+                return '<span class="null-value">[]</span>';
+            }
+
+            let html = '<div>';
+            
+            // Separate applications with scopes from those without (we only display the former; legacy get a single link)
+            const appsWithScopes = [];
+            const appsWithoutScopes = [];
+            
+            applicationsArray.forEach((appRef, index) => {
+                const guid = extractApplicationGuid(appRef);
+                if (guid && applicationsData && applicationsData[guid]) {
+                    const appData = applicationsData[guid];
+                    const scopes = appData.scopes;
+                    const appName = appData.name || 'Unknown';
+                    
+                    if (scopes && Array.isArray(scopes) && scopes.length > 0) {
+                        appsWithScopes.push({ index, appRef, guid, appData, appName, scopes });
+                    } else {
+                        appsWithoutScopes.push({ index, appRef, guid, appData, appName });
+                    }
+                } else {
+                    appsWithoutScopes.push({ index, appRef, guid: null, appData: null, appName: null });
+                }
+            });
+
+            // Only display applications that have scopes (DCR-protected; ESM, Degradation, REST V2)
+            if (appsWithScopes.length > 0) {
+                html += '<div style="margin-bottom: var(--spectrum-global-dimension-size-200);"><strong style="color: var(--spectrum-global-color-green-600); font-size: 15px; font-weight: 700;">⭐ Applications with Scopes (Premium Features):</strong></div>';
+                appsWithScopes.forEach(({ index, appRef, guid, appName, scopes }, arrayIndex) => {
+                    const url = `${ADOBE_CONSOLE_BASE}/rest/api/applications/${guid}`;
+                    const bgColor = arrayIndex % 2 === 0 ? '#2d9d78' : '#1e7a5e';
+                    const textColor = 'var(--spectrum-global-color-gray-50)';
+                    html += `<div class="array-item" style="background: ${bgColor}; border-left: 3px solid var(--spectrum-global-color-green-600); padding: var(--spectrum-global-dimension-size-100); margin-bottom: var(--spectrum-global-dimension-size-100); border-radius: var(--spectrum-alias-border-radius-regular);">`;
+                    html += `<strong>[${index}]:</strong> `;
+                    html += `<a href="${url}" target="_blank" title="Download application data: ${appRef}" onclick="handleApplicationLinkClick(event, '${url}')" style="color: ${textColor}; text-decoration: underline; font-weight: 600; transition: opacity 130ms ease-out; font-size: 15px;">${appName}</a>`;
+                    html += `<div style="margin-top: var(--spectrum-global-dimension-size-75); margin-left: var(--spectrum-global-dimension-size-250);">`;
+                    html += `<strong style="color: ${textColor}; font-weight: 700;">Scopes:</strong> `;
+                    html += `<span style="background: var(--spectrum-global-color-green-600); padding: var(--spectrum-global-dimension-size-25) var(--spectrum-global-dimension-size-100); border-radius: var(--spectrum-alias-border-radius-small); margin: var(--spectrum-global-dimension-size-25); display: inline-block; color: ${textColor}; font-weight: 600;">${scopes.join('</span> <span style="background: var(--spectrum-global-color-green-600); padding: var(--spectrum-global-dimension-size-25) var(--spectrum-global-dimension-size-100); border-radius: var(--spectrum-alias-border-radius-small); margin: var(--spectrum-global-dimension-size-25); display: inline-block; color: ' + textColor + '; font-weight: 600;">')}</span>`;
+                    html += `</div></div>`;
+                });
+            }
+
+            // Single link to PASS Console for legacy applications (no per-app list)
+            if (appsWithoutScopes.length > 0 && programmerId) {
+                const legacyUrl = `${PASS_CONSOLE_PROGRAMMER_APPLICATIONS}/${encodeURIComponent(programmerId)}/applications`;
+                html += '<div style="margin-top: var(--spectrum-global-dimension-size-250); margin-bottom: var(--spectrum-global-dimension-size-200);">';
+                html += `<a href="${legacyUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--spectrum-global-color-blue-600); text-decoration: underline; font-size: 15px; font-weight: 600;">View Legacy Applications (No Scopes), in PASS Console</a>`;
+                html += '</div>';
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        // Check if a value is empty (null, undefined, empty object, empty array, empty string)
+        function isEmptyValue(value) {
+            if (value === null || value === undefined) {
+                return true;
+            }
+            if (typeof value === 'string' && value.trim() === '') {
+                return true;
+            }
+            if (Array.isArray(value) && value.length === 0) {
+                return true;
+            }
+            if (typeof value === 'object' && Object.keys(value).length === 0) {
+                return true;
+            }
+            return false;
+        }
+
+        // Display metadata for selected programmer
+        async function displayMetadata(programmerIndex) {
+            const container = document.getElementById('metadataContainer');
+            const metadataHeader = document.getElementById('metadataHeader');
+            const headerSpan = metadataHeader.querySelector('span');
+            
+            // Populate content providers dropdown
+            populateContentProviders(programmerIndex);
+            
+            if (programmerIndex === '' || !programmersData) {
+                // Reset header to default
+                headerSpan.textContent = 'Metadata';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>Select a programmer from the dropdown above to view their metadata</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const entity = programmersData.entities[programmerIndex];
+            const entityData = entity.entityData || {};
+            const programmerId = entityData.id;
+            const programmerName = entityData.displayName || programmerId || 'Unknown';
+            
+            // Update header to show programmer name
+            headerSpan.textContent = `${programmerName} info.`;
+            
+            // Show loading state
+            container.innerHTML = '<div style="text-align: center; padding: var(--spectrum-global-dimension-size-500); color: var(--spectrum-global-color-blue-600);"><div>Loading metadata...</div></div>';
+            
+            // Fetch applications for this programmer
+            let applicationsData = null;
+            if (programmerId && isAuthenticated) {
+                applicationsData = await fetchApplicationsForProgrammer(programmerId);
+            }
+            
+            let html = '';
+            // Metadata keys to hide from the info box (Content Providers appear in the dropdown instead)
+            const METADATA_HIDDEN_KEYS = new Set([
+                'serviceProviders', 'id', 'featureFlags', 'displayName',
+                'customSchemes', 'contentProviders', 'certificates'
+            ]);
+            // Filter out keys with empty values and hidden keys
+            const keys = Object.keys(entityData)
+                .filter(key => !isEmptyValue(entityData[key]) && !METADATA_HIDDEN_KEYS.has(key))
+                .sort();
+
+            keys.forEach(key => {
+                const value = entityData[key];
+                let formattedValue;
+                
+                // Special handling for applications array
+                if (key === 'applications' && Array.isArray(value) && applicationsData) {
+                    formattedValue = formatApplicationsWithScopes(value, applicationsData, programmerId);
+                } else {
+                    formattedValue = formatValue(value, 0, key);
+                }
+                
+                html += `
+                    <div class="metadata-item">
+                        <div class="metadata-key">${key}</div>
+                        <div class="metadata-value">${formattedValue}</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Event listeners
+        document.getElementById('authBtn').addEventListener('click', function() {
+            if (isAuthenticated) {
+                // Refresh session and reload data
+                checkAuthentication();
+            } else {
+                initiateAdobeLogin();
+            }
+        });
+
+        document.getElementById('programmerSelect').addEventListener('change', async function(e) {
+            await displayMetadata(e.target.value);
+        });
+
+        // Handle content provider selection change
+        document.getElementById('contentProviderSelect').addEventListener('change', async function(e) {
+            const requestorId = e.target.value;
+            await populateMvpdsFromConfig(requestorId);
+        });
+
+        // Toggle metadata container collapse/expand
+        document.getElementById('metadataHeader').addEventListener('click', function() {
+            const container = document.getElementById('metadataContainer');
+            const header = document.getElementById('metadataHeader');
+            
+            if (container.classList.contains('collapsed')) {
+                container.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+            } else {
+                container.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
+        });
+
+        // Handle application link clicks with authentication check
+        async function handleApplicationLinkClick(event, url) {
+            // Let the default link behavior happen, but we can add auth check if needed
+            // The browser will handle the redirect to login if not authenticated
+            // For now, just let it proceed - the server will redirect to login if needed
+        }
+
+        // Make function available globally for onclick handlers
+        window.handleApplicationLinkClick = handleApplicationLinkClick;
+
+        // Check authentication on page load
+        checkAuthentication();
+    </script>
+</body>
+</html>
