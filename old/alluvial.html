@@ -551,7 +551,7 @@ th .sort-icon {
   </div>
 
   <div class="panel selection">
-    <div class="help" id="selectionHelp">Select any endpoint brick to run that ESM URL. Click a branch brick to zoom into that subtree; use reset to return.</div>
+    <div class="help" id="selectionHelp">Select any endpoint brick to run that ESM URL. Click branch bricks to reveal child drill-downs and fill the puzzle map.</div>
     <div class="endpoint-url" id="selectedEndpointUrl">No endpoint selected.</div>
     <div class="columns-wrap" id="selectedColumns"></div>
   </div>
@@ -1780,12 +1780,10 @@ let __treeRoot = null;
 let __treeRenderRoot = null;
 let __nodeById = new Map();
 let __selectedNodeId = null;
-let __treeFocusNodeId = null;
 let __treeSearchTerm = '';
 let __treeZoomFilter = '';
 let __flowColorByMajor = new Map();
 let __revealedNodeIds = new Set();
-let __expandedNodeIds = new Set();
 let __revealSeq = 0;
 
 const TIME_SPINE = new Set([
@@ -1937,6 +1935,7 @@ function buildTree() {
 
   __treeRoot = root;
   __treeRenderRoot = renderRoot;
+  __resetPuzzleRevealState();
 }
 
 function normalizeSearchTerm(raw) {
@@ -2067,7 +2066,6 @@ function __visibleChildren(node) {
 
 function __resetPuzzleRevealState() {
   __revealedNodeIds = new Set();
-  __expandedNodeIds = new Set();
   __revealSeq = 0;
   [...__nodeById.values()].forEach(node => {
     node.revealedOrder = -1;
@@ -2089,7 +2087,6 @@ function __revealChildren(node) {
   kids.forEach(child => {
     if (__markNodeRevealed(child)) added += 1;
   });
-  if (kids.length) __expandedNodeIds.add(node.id);
   return added;
 }
 
@@ -2209,12 +2206,14 @@ function layoutTetrisTree(root, viewportWidth, viewportMinHeight) {
 
   function collect(node, depth) {
     if (!node.visible || (node.flow || 0) <= 0) return;
+    if (node !== root && !__revealedNodeIds.has(node.id)) return;
     node.depth = depth;
     node.__seq = visitSeq++;
     nodes.push(node);
     maxDepth = Math.max(maxDepth, depth);
     const children = __visibleChildren(node);
     children.forEach(child => {
+      if (!__revealedNodeIds.has(child.id)) return;
       edgePairs.push({ parent: node, child });
       collect(child, depth + 1);
     });
@@ -2241,8 +2240,11 @@ function layoutTetrisTree(root, viewportWidth, viewportMinHeight) {
   });
   depthGroups.forEach(group => {
     group.sort((a, b) => {
-      const ap = a.parent ? (a.parent.__seq ?? -1) : -1;
-      const bp = b.parent ? (b.parent.__seq ?? -1) : -1;
+      const ar = a.revealedOrder >= 0 ? a.revealedOrder : Number.MAX_SAFE_INTEGER;
+      const br = b.revealedOrder >= 0 ? b.revealedOrder : Number.MAX_SAFE_INTEGER;
+      if (ar !== br) return ar - br;
+      const ap = a.parent ? (a.parent.revealedOrder ?? -1) : -1;
+      const bp = b.parent ? (b.parent.revealedOrder ?? -1) : -1;
       if (ap !== bp) return ap - bp;
       if (a.__seq !== b.__seq) return a.__seq - b.__seq;
       return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
@@ -2456,7 +2458,7 @@ function updateSelectionPanel(node) {
   if (!node || !node.endpoint) {
     urlEl.textContent = 'No endpoint selected.';
     colsEl.innerHTML = '';
-    helpEl.textContent = 'Select any endpoint brick to run that ESM URL. Click a branch brick to zoom into that subtree; use reset to return.';
+    helpEl.textContent = 'Select any endpoint brick to run that ESM URL. Click branch bricks to reveal child drill-downs and fill the puzzle map.';
     return;
   }
 
@@ -2485,16 +2487,7 @@ function renderTree() {
     }
   }
 
-  if (__treeFocusNodeId != null) {
-    const focused = __nodeById.get(__treeFocusNodeId);
-    if (!focused || !focused.visible || (focused.flow || 0) <= 0) {
-      __treeFocusNodeId = null;
-    }
-  }
-
-  const renderRoot = (__treeFocusNodeId != null && __nodeById.has(__treeFocusNodeId))
-    ? __nodeById.get(__treeFocusNodeId)
-    : __treeRenderRoot;
+  const renderRoot = __treeRenderRoot;
 
   if (!renderRoot || !renderRoot.visible || (renderRoot.flow || 0) <= 0) {
     const svgEmpty = document.getElementById('treeSvg');
@@ -2503,6 +2496,8 @@ function renderTree() {
     renderFlowLegend();
     return;
   }
+
+  __ensurePuzzleSeed(renderRoot);
 
   const svg = document.getElementById('treeSvg');
   const viewport = document.querySelector('.tree-viewport');
@@ -2541,16 +2536,20 @@ function renderTree() {
   const railsLayer = __svg('g');
   const bricksLayer = __svg('g');
   const overlayLayer = __svg('g');
+  const boardRowsToDraw = Math.max(
+    rowsUsed,
+    Math.max(1, Math.floor((canvasHeight - (margin * 2)) / Math.max(1, cellPx)))
+  );
 
-  const resetFocus = () => {
-    if (__treeFocusNodeId != null) {
-      __treeFocusNodeId = null;
-      renderTree();
-    }
+  const resetPuzzleMap = () => {
+    __resetPuzzleRevealState();
+    __selectedNodeId = null;
+    updateSelectionPanel(null);
+    renderTree();
   };
-  svg.onclick = resetFocus;
+  svg.onclick = null;
 
-  for (let r = 0; r < rowsUsed; r += 1) {
+  for (let r = 0; r < boardRowsToDraw; r += 1) {
     for (let c = 0; c < cols; c += 1) {
       const cell = __svg('rect');
       cell.setAttribute('x', String(margin + (c * cellPx) + 1));
@@ -2647,6 +2646,10 @@ function renderTree() {
 
       group.addEventListener('click', async (e) => {
         e.stopPropagation();
+        __markNodeRevealed(node);
+        const added = __revealChildren(node);
+        const shouldRerender = added > 0;
+
         if (node.endpoint) {
           __selectedNodeId = node.id;
           updateSelectionPanel(node);
@@ -2654,22 +2657,21 @@ function renderTree() {
           await runEsmEndpoint(node.endpoint);
           return;
         }
-        if (isRenderRoot) return;
-        __treeFocusNodeId = node.id;
+        if (isRenderRoot && !shouldRerender) return;
         renderTree();
       });
 
       bricksLayer.appendChild(group);
     });
 
-  if (__treeFocusNodeId != null) {
+  if (__revealedNodeIds.size > 1) {
     const resetG = __svg('g');
     resetG.setAttribute('class', 'tree-reset');
     resetG.setAttribute('transform', 'translate(12,12)');
     resetG.style.cursor = 'pointer';
     resetG.addEventListener('click', (e) => {
       e.stopPropagation();
-      resetFocus();
+      resetPuzzleMap();
     });
 
     const rr = __svg('rect');
@@ -2697,10 +2699,11 @@ function renderTree() {
   const visibleCount = [...__nodeById.values()].filter(n => n.visible && n.endpoint).length;
   const totalCount = ESM_ENDPOINTS.length;
   const zoomLabel = __treeZoomFilter ? ` (${__treeZoomFilter})` : '';
-  const focusLabel = (__treeFocusNodeId != null)
-    ? ` | focus: ${renderRoot.pathParts.join(' / ')}`
-    : '';
-  document.getElementById('treeMeta').textContent = `${visibleCount}/${totalCount} endpoints visible${zoomLabel}${focusLabel}`;
+  const revealedCount = nodes.length;
+  const revealedEndpointCount = nodes.filter(n => !!n.endpoint).length;
+  document.getElementById('treeMeta').textContent =
+    `${visibleCount}/${totalCount} endpoints visible${zoomLabel} | ` +
+    `${revealedEndpointCount} revealed endpoints | ${revealedCount} bricks placed`;
   renderFlowLegend();
 }
 
@@ -2731,7 +2734,9 @@ function resetList() {
   if (fs) fs.selectedIndex = 0;
   __treeSearchTerm = '';
   __treeZoomFilter = '';
-  __treeFocusNodeId = null;
+  __resetPuzzleRevealState();
+  __selectedNodeId = null;
+  updateSelectionPanel(null);
   renderTree();
 }
 
