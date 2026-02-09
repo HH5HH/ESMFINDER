@@ -1,0 +1,2829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ESM3 FINDIT - ESM Tetris Board</title>
+<style>
+:root {
+  --bg: #d9dde2;
+  --panel: #ffffff;
+  --ink: #1f2a33;
+  --muted: #637482;
+  --line: #2f526d;
+  --accent: #e26a5a;
+  --table-head: #ecefed;
+  --table-row: #f9faf9;
+  --table-alt: #f1f3f1;
+  --chip-bg: #f2f5f8;
+  --chip-border: #d8e0e7;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  padding: 18px;
+  background: radial-gradient(circle at 15% 5%, #edf3f7 0%, #d9dde2 45%, #cfd5dc 100%);
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", Arial, sans-serif;
+  overflow: hidden;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 12px;
+  height: 100%;
+  min-width: 0;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid #c9d3dc;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(28, 44, 58, 0.08);
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.toolbar .title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin-right: 10px;
+}
+
+input, select, button {
+  font-size: 14px;
+}
+
+input, select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #b7c4d1;
+  background: #fff;
+}
+
+input#searchText { width: 290px; }
+
+button {
+  padding: 8px 14px;
+  border: 1px solid #8ea2b4;
+  border-radius: 8px;
+  background: #f8fbfd;
+  color: #1f2a33;
+  cursor: pointer;
+}
+
+button:hover { background: #eef4f9; }
+
+button.reset-button {
+  border-color: #cb7c70;
+  background: var(--accent);
+  color: #fff;
+}
+
+button.reset-button:hover {
+  background: #cf5b4c;
+}
+
+#netIndicator {
+  display: none;
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  border: 2px solid rgba(0,0,0,.25);
+  border-top-color: rgba(0,0,0,.65);
+  border-radius: 50%;
+  animation: netSpin .8s linear infinite;
+}
+
+@keyframes netSpin { to { transform: rotate(360deg); } }
+
+body.net-busy { cursor: progress; }
+body.net-busy a,
+body.net-busy button,
+body.net-busy select,
+body.net-busy input { cursor: progress; }
+
+.selection {
+  padding: 10px 12px;
+  display: grid;
+  gap: 7px;
+}
+
+.selection .endpoint-url {
+  font-family: Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #304758;
+  overflow-wrap: anywhere;
+}
+
+.selection .help {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.columns-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.col-chip {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
+  color: #415665;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.main-grid {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tree-card,
+.table-card {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-card {
+  flex: 1 1 56%;
+}
+
+.table-card {
+  flex: 1 1 44%;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #d7dfe6;
+}
+
+.card-head .card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #263948;
+}
+
+.card-head .sub {
+  font-size: 11px;
+  color: #6c7d8b;
+}
+
+.flow-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 560px;
+}
+
+.flow-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border: 1px solid #d8e1e8;
+  border-radius: 999px;
+  background: #f8fbfd;
+  font-size: 10px;
+  color: #4a5f70;
+  white-space: nowrap;
+}
+
+.flow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.tree-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  scrollbar-gutter: stable both-edges;
+}
+
+#treeSvg {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 240px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(14, 30, 48, 0.038),
+      rgba(14, 30, 48, 0.038) 2px,
+      rgba(255, 255, 255, 0) 2px,
+      rgba(255, 255, 255, 0) 4px
+    ),
+    linear-gradient(180deg, #f6fbff 0%, #e7f0f7 100%);
+  border: 1px solid #b6c9d9;
+  border-radius: 10px;
+}
+
+.tetris-board-cell {
+  fill: #eaf1f7;
+  stroke: rgba(32, 60, 84, 0.16);
+  stroke-width: 0.9;
+  shape-rendering: crispEdges;
+}
+
+.tetris-board-cell.alt {
+  fill: #e3ebf2;
+}
+
+.tetris-edge-casing {
+  stroke: rgba(13, 41, 63, 0.54);
+  stroke-width: 4.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.3;
+}
+
+.tetris-edge {
+  stroke: #4b6f8a;
+  stroke-width: 2.25;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.92;
+  shape-rendering: geometricPrecision;
+}
+
+.tetris-edge.dimmed,
+.tetris-edge-casing.dimmed {
+  opacity: 0.16;
+}
+
+.tetris-node {
+  pointer-events: auto;
+}
+
+.tetris-node.dimmed {
+  opacity: 0.24;
+}
+
+.tetris-piece-cell {
+  stroke-width: 1.25;
+  rx: 2;
+  ry: 2;
+  shape-rendering: crispEdges;
+}
+
+.tetris-node.endpoint .tetris-piece-cell {
+  stroke-width: 1.45;
+}
+
+.tetris-node.selected .tetris-piece-cell {
+  stroke: #173d5b !important;
+  stroke-width: 1.95;
+}
+
+.tetris-label-bg {
+  fill: rgba(248, 252, 255, 0.96);
+  stroke: rgba(29, 65, 90, 0.44);
+  stroke-width: 1.05;
+  rx: 4;
+  ry: 4;
+  shape-rendering: crispEdges;
+}
+
+.tetris-node.endpoint .tetris-label-bg {
+  fill: rgba(255, 249, 234, 0.98);
+}
+
+.tetris-node.selected .tetris-label-bg {
+  fill: rgba(255, 233, 181, 0.98);
+  stroke: rgba(20, 54, 80, 0.84);
+}
+
+.tetris-label {
+  font-family: "Courier New", "Lucida Console", Monaco, monospace;
+  font-weight: 700;
+  fill: #16364c;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 0.2px;
+  pointer-events: none;
+}
+
+.tree-reset rect {
+  fill: rgba(246, 252, 255, 0.94);
+  stroke: #2f536d;
+  stroke-width: 1.3;
+  rx: 0;
+  ry: 0;
+}
+
+.tree-reset text {
+  font-family: "Courier New", "Lucida Console", Monaco, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  fill: #19384d;
+  pointer-events: none;
+}
+
+.table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px;
+  display: flex;
+}
+
+.table-placeholder {
+  width: 100%;
+  border: 1px dashed #bac9d5;
+  border-radius: 10px;
+  padding: 28px 18px;
+  color: #6b7a88;
+  text-align: center;
+  background: #f8fbfd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.esm-table-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  scrollbar-gutter: stable both-edges;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+th, td {
+  padding: 6px 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-overflow: clip;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.2;
+}
+
+thead th {
+  line-height: 1.15;
+}
+
+table.table-tight th,
+table.table-tight td {
+  font-size: 12px;
+  padding: 5px 6px;
+}
+
+table.table-ultra-tight th,
+table.table-ultra-tight td {
+  font-size: 11px;
+  padding: 4px 5px;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--table-head);
+}
+
+tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid #ddd;
+}
+
+tbody tr:nth-child(odd) { background: var(--table-row); }
+tbody tr:nth-child(even) { background: var(--table-alt); }
+tbody tr:hover { background: #f0eee9; }
+
+th.active-sort {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+th .sort-icon {
+  font-size: 0.75em;
+  opacity: 0.8;
+}
+
+.esm-footer {
+  display: flex;
+  align-items: center;
+}
+
+.esm-close {
+  margin-left: auto;
+  font-weight: bold;
+  font-size: 16px;
+  color: #999;
+  cursor: pointer;
+}
+
+.esm-close:hover {
+  color: #e26a5a;
+  text-decoration: underline;
+}
+
+.footer-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+#fltr_requestorid,
+#fltr_mvpdId {
+  min-width: 180px;
+  max-width: 100%;
+  flex: 1 1 260px;
+}
+
+#fltr_requestorid option.req-tone-a { background-color: var(--table-row); }
+#fltr_requestorid option.req-tone-b { background-color: var(--table-alt); }
+
+#fltr_mvpdId option.mvpd-tone-a1 { background-color: #eaf3ff; }
+#fltr_mvpdId option.mvpd-tone-a2 { background-color: #dcebff; }
+#fltr_mvpdId option.mvpd-tone-b1 { background-color: #fff1e6; }
+#fltr_mvpdId option.mvpd-tone-b2 { background-color: #ffe3d1; }
+
+#fltr_mvpdId option.mvpd-direct { font-weight: 700; }
+#fltr_mvpdId option.mvpd-proxy { font-weight: 400; }
+
+#fltr_mvpdId option.mvpd-hover,
+#fltr_mvpdId option:hover,
+#fltr_mvpdId option:focus {
+  background-color: #f0eee9 !important;
+}
+
+@media (max-width: 1280px) {
+  .tree-card { flex-basis: 54%; }
+  .table-card { flex-basis: 46%; }
+  .toolbar { flex-wrap: wrap; }
+  input#searchText { width: 100%; max-width: 540px; }
+  .flow-legend { justify-content: flex-start; max-width: 100%; }
+  #fltr_requestorid,
+  #fltr_mvpdId { max-width: 100%; }
+}
+
+@media (max-width: 900px) {
+  body {
+    padding: 10px;
+  }
+  .toolbar {
+    gap: 6px;
+  }
+  .toolbar .title {
+    width: 100%;
+    margin-right: 0;
+  }
+  input#searchText {
+    width: 100%;
+    max-width: none;
+    flex: 1 1 100%;
+  }
+}
+</style>
+</head>
+<body>
+<input type="hidden" name="cid" value="5614fd92-a54a-4469-937f-e2604d048c96">
+<input type="hidden" name="csc" value="e02de933-2b44-464e-a9c5-955dee91f855">
+<input type="hidden" name="access_token" value="eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI1NjE0ZmQ5Mi1hNTRhLTQ0NjktOTM3Zi1lMjYwNGQwNDhjOTYiLCJuYmYiOjE3NzA0MTA4MzQsImlzcyI6ImF1dGguYWRvYmUuY29tIiwic2NvcGVzIjoiYW5hbHl0aWNzOmNsaWVudCIsImV4cCI6MTc3MDQzMjQzNCwiaWF0IjoxNzcwNDEwODM0fQ.UlU2IGSy3oDfvl1v9_JkRS2nU-0aF6M5xfwuHTvSyip9yW_T3ETrfSADYnuiJvMSvHl9mABqTogDEWQ6YWgX_vJ2Z-qLtckjd4PWuCwcQsGFcKDxyZLoQoEXkurceSm3_Y8tWpx9GaOReguiW2qKO4mP2GiypiC0UrYv40Fr94CEmh56PtbHs5lzFmJL1MaeeBnhwvy_Ju9KbMyRMHFxpUu_BHOssMXWBf-6sQozjUiWdFIguq2FMCEA6cJWD9QNuNeKlx_KuYv-9dsGRcPxd4fgx2L7EzRzv8Ed_KYWQ3wV5IefQ1nxQycuBKjzRJRH5uS3sFFx20YbT8SSDKsxvw">
+
+<div class="app-shell">
+  <div class="panel toolbar">
+    <div class="title">ESM3 FINDIT</div>
+    <select id="filterSelect" onchange="filterList()" title="Zoom Level">
+      <option value=""></option>
+      <option value="YR">YR</option>
+      <option value="MO">MO</option>
+      <option value="DAY">DAY</option>
+      <option value="HR">HR</option>
+      <option value="MIN">MIN</option>
+    </select>
+    <input id="searchText" placeholder="Node / URL / column search...">
+    <button onclick="highlightText()">FIND IT</button>
+    <button class="reset-button" onclick="resetList()">RESET</button>
+    <span id="netIndicator" title="Loading" aria-label="Loading"></span>
+  </div>
+
+  <div class="panel selection">
+    <div class="help" id="selectionHelp">Select any endpoint brick to run that ESM URL. Click a branch brick to zoom into that subtree; use reset to return.</div>
+    <div class="endpoint-url" id="selectedEndpointUrl">No endpoint selected.</div>
+    <div class="columns-wrap" id="selectedColumns"></div>
+  </div>
+
+  <div class="main-grid">
+    <section class="panel tree-card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">ESM Drill-Down Tetris Board</div>
+          <div class="sub">Derived from all ESM endpoints in <code>clickESM.html</code></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <div class="sub" id="treeMeta"></div>
+          <div class="flow-legend" id="flowLegend"></div>
+        </div>
+      </div>
+      <div class="tree-viewport">
+        <svg id="treeSvg"></svg>
+      </div>
+    </section>
+
+    <section class="panel table-card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">ESM Data</div>
+          <div class="sub" id="tableSub">Inline limit: 50, CSV limit: 10000, DATE converted from PST to local.</div>
+        </div>
+      </div>
+      <div class="table-wrap" id="tableHostWrap">
+        <div id="tableHost" class="table-placeholder">Click an endpoint brick to load its inline table.</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="panel footer-filters">
+    <select id="fltr_requestorid"
+            name="fltr_requestorid"
+            multiple
+            size="1"
+            onchange="onRequestorChange()"
+            title="Filter by selected requestor-id(s)"></select>
+
+    <select id="fltr_mvpdId"
+            name="fltr_mvpdId"
+            multiple
+            size="1"
+            disabled
+            style="display:none;"
+            title="Filter by selected MVPD(s)"></select>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ---------- Config ---------- */
+const ESM_INLINE_RESULT_LIMIT = 50;
+const ESM_CSV_RESULT_LIMIT = 10000;
+const ESM_SOURCE_UTC_OFFSET_MINUTES = -8 * 60; // PST
+const CLIENT_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+const TOKEN_COLOR = {
+  'media-company': '#1d1d1d',
+  'year': '#7ec8de',
+  'month': '#0fcd3f',
+  'day': '#d62828',
+  'hour': '#f28c00',
+  'minute': '#8a6511',
+  'proxy': '#f0bf20',
+  'mvpd': '#22d5db',
+  'requestor-id': '#5f9b9c',
+  'event': '#c66ca8',
+  'customer-app': '#c79c5c',
+  'application-name': '#8a6a00',
+  'platform': '#e56f2e',
+  'application-version': '#8e8e8e',
+  'channel': '#18afe4',
+  'dc': '#b6945d',
+  'cdt': '#94a61f',
+  'eap': '#df5f2e',
+  'nsdk': '#d8cc8d',
+  'nsdk-version': '#a30f8f',
+  'sso-type': '#39d4d7',
+  'platform-version': '#927527',
+  'reason': '#7898be'
+};
+
+const SORT_PRIORITY = new Map([
+  ['media-company', 0],
+  ['year', 1],
+  ['month', 2],
+  ['day', 3],
+  ['hour', 4],
+  ['minute', 5],
+  ['proxy', 10],
+  ['event', 20],
+  ['requestor-id', 30],
+  ['customer-app', 40],
+  ['application-name', 50],
+  ['platform', 60],
+  ['application-version', 70],
+  ['channel', 80],
+  ['dc', 90],
+  ['cdt', 100],
+  ['eap', 110],
+  ['nsdk', 120],
+  ['nsdk-version', 130],
+  ['sso-type', 140],
+  ['platform-version', 150],
+  ['mvpd', 160],
+  ['reason', 170]
+]);
+
+/* ---------- Network indicator ---------- */
+let __netInFlight = 0;
+
+function __setNetBusy(busy) {
+  document.body.classList.toggle('net-busy', !!busy);
+  const el = document.getElementById('netIndicator');
+  if (el) el.style.display = busy ? 'inline-block' : 'none';
+}
+
+function __netStart() {
+  __netInFlight++;
+  if (__netInFlight === 1) __setNetBusy(true);
+}
+
+function __netEnd() {
+  __netInFlight = Math.max(0, __netInFlight - 1);
+  if (__netInFlight === 0) __setNetBusy(false);
+}
+
+/* ---------- Token ---------- */
+function getToken() {
+  return (
+    localStorage.getItem('access_token') ||
+    (document.querySelector('input[name=access_token]')?.value ?? '')
+  );
+}
+
+function setToken(t) {
+  localStorage.setItem('access_token', t);
+  const input = document.querySelector('input[name=access_token]');
+  if (input) input.value = t;
+}
+
+async function refreshToken() {
+  __netStart();
+  try {
+    const cid = document.querySelector('input[name=cid]')?.value ?? '';
+    const csc = document.querySelector('input[name=csc]')?.value ?? '';
+
+    const r = await fetch(
+      'https://sp.auth.adobe.com/o/client/token?grant_type=client_credentials' +
+      '&client_id=' + encodeURIComponent(cid) +
+      '&client_secret=' + encodeURIComponent(csc),
+      { method: 'POST' }
+    );
+
+    if (!r.ok) throw new Error('Token refresh failed');
+    const j = await r.json();
+    setToken(j.access_token);
+    return j.access_token;
+  } finally {
+    __netEnd();
+  }
+}
+
+/* ---------- ESM limit guard ---------- */
+function __isEsmUrl(url) {
+  return typeof url === 'string' && url.includes('mgmt.auth.adobe.com/esm/');
+}
+
+function __appendQueryParam(url, paramKV) {
+  const hashIdx = url.indexOf('#');
+  const base = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+  const hash = hashIdx >= 0 ? url.slice(hashIdx) : '';
+
+  if (!base.includes('?')) return base + '?' + paramKV + hash;
+  if (base.endsWith('?') || base.endsWith('&')) return base + paramKV + hash;
+  return base + '&' + paramKV + hash;
+}
+
+function ensureEsmLimit(url, limit = ESM_CSV_RESULT_LIMIT) {
+  if (!__isEsmUrl(url)) return url;
+
+  const lim = encodeURIComponent(String(limit));
+  if (/[?&]limit=/.test(url)) {
+    return url.replace(/([?&]limit=)([^&#]*)/, `$1${lim}`);
+  }
+  return __appendQueryParam(url, 'limit=' + lim);
+}
+
+async function fetchWithRefresh(url, options = {}) {
+  __netStart();
+  try {
+    const { esmLimit = ESM_CSV_RESULT_LIMIT } = options;
+    const finalUrl = ensureEsmLimit(url, esmLimit);
+
+    let r = await fetch(finalUrl, {
+      headers: { Authorization: 'Bearer ' + getToken() }
+    });
+
+    if (r.status === 401) {
+      await refreshToken();
+      r = await fetch(finalUrl, {
+        headers: { Authorization: 'Bearer ' + getToken() }
+      });
+    }
+
+    return r;
+  } finally {
+    __netEnd();
+  }
+}
+
+/* ---------- Requestor + MVPD filters ---------- */
+function appendFilterParams(url) {
+  const reqSel = document.getElementById('fltr_requestorid');
+  const mvpdSel = document.getElementById('fltr_mvpdId');
+
+  const reqIds = reqSel
+    ? [...reqSel.selectedOptions].map(o => o.value).filter(Boolean)
+    : [];
+
+  const mvpdIds = mvpdSel && !mvpdSel.disabled
+    ? [...mvpdSel.selectedOptions].map(o => o.value).filter(Boolean)
+    : [];
+
+  if (!reqIds.length && !mvpdIds.length) return url;
+
+  const sep = url.includes('?') ? '&' : '?';
+  const params = [
+    ...reqIds.map(id => 'requestor-id=' + encodeURIComponent(id)),
+    ...mvpdIds.map(id => 'mvpd=' + encodeURIComponent(id))
+  ];
+
+  return url + sep + params.join('&');
+}
+
+async function loadRequestorIds() {
+  const url = 'https://mgmt.auth.adobe.com/esm/v3/media-company/year?requestor-id';
+
+  const r = await fetchWithRefresh(url);
+  if (!r.ok) return;
+
+  const j = await r.json();
+  if (!j.report || !Array.isArray(j.report)) return;
+
+  const ids = new Set();
+  let mediaCompany = null;
+
+  j.report.forEach(row => {
+    if (row['requestor-id']) ids.add(row['requestor-id']);
+    if (!mediaCompany && row['media-company']) mediaCompany = row['media-company'];
+  });
+
+  if (mediaCompany) document.title = `ESM3 FINDIT - ${mediaCompany} - ESM Tetris Board`;
+
+  const sel = document.getElementById('fltr_requestorid');
+  if (!sel) return;
+
+  [...ids]
+    .sort()
+    .forEach((id, idx) => {
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = id;
+      const isOdd = idx % 2 === 1;
+      o.classList.add(isOdd ? 'req-tone-b' : 'req-tone-a');
+      o.style.backgroundColor = isOdd ? 'var(--table-alt)' : 'var(--table-row)';
+      sel.appendChild(o);
+    });
+}
+
+let __pendingReqIds = [];
+let __reqApplyTimer = null;
+let __lastAppliedReqIds = [];
+let __mvpdCacheByRequestor = new Map();
+let __lastKnownSelectedMvpdIds = new Set();
+
+function __getSelectedValues(sel) {
+  if (!sel) return [];
+  return [...sel.selectedOptions].map(o => o.value).filter(Boolean);
+}
+
+function __rememberMvpdSelection() {
+  const mvpdSel = document.getElementById('fltr_mvpdId');
+  if (!mvpdSel) return;
+  __lastKnownSelectedMvpdIds = new Set(__getSelectedValues(mvpdSel));
+}
+
+async function __loadMvpdMapForRequestor(rid) {
+  if (__mvpdCacheByRequestor.has(rid)) return __mvpdCacheByRequestor.get(rid);
+
+  const mvpdMap = new Map();
+  try {
+    const r = await fetchWithRefresh(
+      'https://sp.auth.adobe.com/api/v1/config/' + encodeURIComponent(rid)
+    );
+
+    if (r.ok) {
+      const txt = await r.text();
+      const xml = new DOMParser().parseFromString(txt, 'application/xml');
+      const mvpdNodes = xml.querySelectorAll('mvpds > mvpd');
+
+      mvpdNodes.forEach(m => {
+        const idNode = m.querySelector('id');
+        if (!idNode) return;
+
+        const nameNode = m.querySelector('displayName');
+        const isProxyNode = m.querySelector('isProxy');
+
+        const id = (idNode.textContent || '').trim();
+        if (!id) return;
+
+        const nameRaw = (nameNode?.textContent || '').trim();
+        const name = nameRaw || id;
+
+        const isProxyTxt = (isProxyNode?.textContent || '').trim().toLowerCase();
+        const isProxy = isProxyTxt === 'false' ? false : true;
+
+        if (!mvpdMap.has(id)) mvpdMap.set(id, { name, isProxy });
+      });
+    }
+  } catch (e) {
+    console.warn('MVPD load failed for', rid, e);
+  }
+
+  __mvpdCacheByRequestor.set(rid, mvpdMap);
+  return mvpdMap;
+}
+
+function __hideMvpdSelector() {
+  const mvpdSel = document.getElementById('fltr_mvpdId');
+  if (!mvpdSel) return;
+
+  mvpdSel.innerHTML = '';
+  mvpdSel.disabled = true;
+  mvpdSel.style.display = 'none';
+  __lastKnownSelectedMvpdIds = new Set();
+}
+
+function __applyMvpdOptions(mvpdSel, entries, desiredSelectedIds) {
+  mvpdSel.innerHTML = '';
+
+  let lastCh = null;
+  let idxInGroup = 0;
+
+  const getName = (entryVal, fallbackId) => {
+    if (entryVal && typeof entryVal === 'object') {
+      const n = (entryVal.name ?? '').trim();
+      return n || String(fallbackId ?? '');
+    }
+    const s = String(entryVal ?? '').trim();
+    return s || String(fallbackId ?? '');
+  };
+
+  const getIsProxy = (entryVal) => {
+    if (entryVal && typeof entryVal === 'object') {
+      return entryVal.isProxy === false ? false : true;
+    }
+    return true;
+  };
+
+  entries
+    .sort((a, b) => {
+      const aName = getName(a?.[1], a?.[0]);
+      const bName = getName(b?.[1], b?.[0]);
+      return String(aName).localeCompare(String(bName), undefined, { sensitivity: 'base' });
+    })
+    .forEach(([id, meta]) => {
+      const displayName = getName(meta, id);
+      const isProxy = getIsProxy(meta);
+
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = `${displayName} (${id})`;
+
+      if (isProxy === false) {
+        o.classList.add('mvpd-direct');
+        o.style.fontWeight = '700';
+      } else {
+        o.classList.add('mvpd-proxy');
+        o.style.fontWeight = '400';
+      }
+
+      const first = (displayName.charAt(0) || '#').toUpperCase();
+      if (first !== lastCh) {
+        lastCh = first;
+        idxInGroup = 0;
+      }
+
+      const letterCode = first.charCodeAt(0);
+      const isEvenLetter = Number.isFinite(letterCode) ? ((letterCode % 2) === 0) : false;
+      const isEvenInGroup = (idxInGroup % 2 === 0);
+
+      let toneClass;
+      if (isEvenLetter) {
+        toneClass = isEvenInGroup ? 'mvpd-tone-a1' : 'mvpd-tone-a2';
+      } else {
+        toneClass = isEvenInGroup ? 'mvpd-tone-b1' : 'mvpd-tone-b2';
+      }
+      o.classList.add(toneClass);
+
+      if (desiredSelectedIds && desiredSelectedIds.has(id)) {
+        o.selected = true;
+      }
+
+      mvpdSel.appendChild(o);
+      idxInGroup++;
+    });
+
+  mvpdSel.disabled = mvpdSel.options.length === 0;
+  mvpdSel.style.display = mvpdSel.options.length ? 'inline-block' : 'none';
+}
+
+async function __applyRequestorSelection(requestorIds) {
+  const mvpdSel = document.getElementById('fltr_mvpdId');
+  if (!mvpdSel) return;
+
+  if (!requestorIds || !requestorIds.length) {
+    __hideMvpdSelector();
+    return;
+  }
+
+  __rememberMvpdSelection();
+  const desiredSelected = new Set(__lastKnownSelectedMvpdIds);
+
+  const merged = new Map();
+  for (const rid of requestorIds) {
+    const perReq = await __loadMvpdMapForRequestor(rid);
+    for (const [id, meta] of perReq.entries()) {
+      if (!merged.has(id)) {
+        merged.set(id, { name: meta?.name || id, isProxy: meta?.isProxy === false ? false : true });
+      } else {
+        const prev = merged.get(id);
+        merged.set(id, {
+          name: prev?.name || meta?.name || id,
+          isProxy: (prev?.isProxy === false || meta?.isProxy === false) ? false : true
+        });
+      }
+    }
+  }
+
+  if (!merged.size) {
+    __hideMvpdSelector();
+    return;
+  }
+
+  __applyMvpdOptions(mvpdSel, [...merged.entries()], desiredSelected);
+  __rememberMvpdSelection();
+  mvpdSel.disabled = false;
+}
+
+function __scheduleApplyRequestors() {
+  if (__reqApplyTimer) clearTimeout(__reqApplyTimer);
+  __reqApplyTimer = setTimeout(async () => {
+    __reqApplyTimer = null;
+    __lastAppliedReqIds = [...__pendingReqIds];
+    await __applyRequestorSelection(__pendingReqIds);
+  }, 350);
+}
+
+function onRequestorChange() {
+  const reqSel = document.getElementById('fltr_requestorid');
+  if (!reqSel) return;
+
+  const mvpdSel = document.getElementById('fltr_mvpdId');
+  if (mvpdSel && !mvpdSel._rememberSelectionAttached) {
+    mvpdSel._rememberSelectionAttached = true;
+    mvpdSel.addEventListener('change', __rememberMvpdSelection);
+  }
+
+  __pendingReqIds = __getSelectedValues(reqSel);
+
+  if (!__pendingReqIds.length) {
+    if (__reqApplyTimer) {
+      clearTimeout(__reqApplyTimer);
+      __reqApplyTimer = null;
+    }
+    __lastAppliedReqIds = [];
+    __hideMvpdSelector();
+    return;
+  }
+
+  __scheduleApplyRequestors();
+}
+
+const ESM_ENDPOINTS = [
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year', zoomClass: 'zmYR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'media-company', 'media-tokens', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month', zoomClass: 'zmMO', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'media-company', 'media-tokens', 'month', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event', zoomClass: 'zmDAY', cols: ['count', 'day', 'event', 'media-company', 'month', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id', zoomClass: 'zmDAY', cols: ['count', 'day', 'event', 'media-company', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy', zoomClass: 'zmDAY', cols: ['count', 'day', 'event', 'media-company', 'month', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd', zoomClass: 'zmDAY', cols: ['count', 'day', 'event', 'media-company', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason', zoomClass: 'zmDAY', cols: ['count', 'day', 'event', 'media-company', 'month', 'mvpd', 'proxy', 'reason', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/event/requestor-id/proxy/mvpd/reason/dc', zoomClass: 'zmDAY', cols: ['count', 'day', 'dc', 'event', 'media-company', 'month', 'mvpd', 'proxy', 'reason', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event', zoomClass: 'zmHR', cols: ['count', 'day', 'event', 'hour', 'media-company', 'month', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id', zoomClass: 'zmHR', cols: ['count', 'day', 'event', 'hour', 'media-company', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy', zoomClass: 'zmHR', cols: ['count', 'day', 'event', 'hour', 'media-company', 'month', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd', zoomClass: 'zmHR', cols: ['count', 'day', 'event', 'hour', 'media-company', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd/reason', zoomClass: 'zmHR', cols: ['count', 'day', 'event', 'hour', 'media-company', 'month', 'mvpd', 'proxy', 'reason', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/event/requestor-id/proxy/mvpd/reason/dc', zoomClass: 'zmHR', cols: ['count', 'day', 'dc', 'event', 'hour', 'media-company', 'month', 'mvpd', 'proxy', 'reason', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'hour', 'media-company', 'minute', 'month', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event', zoomClass: 'zmMIN', cols: ['count', 'day', 'event', 'hour', 'media-company', 'minute', 'month', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id', zoomClass: 'zmMIN', cols: ['count', 'day', 'event', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy', zoomClass: 'zmMIN', cols: ['count', 'day', 'event', 'hour', 'media-company', 'minute', 'month', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd', zoomClass: 'zmMIN', cols: ['count', 'day', 'event', 'hour', 'media-company', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd/reason', zoomClass: 'zmMIN', cols: ['count', 'day', 'event', 'hour', 'media-company', 'minute', 'month', 'mvpd', 'proxy', 'reason', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/event/requestor-id/proxy/mvpd/reason/dc', zoomClass: 'zmMIN', cols: ['count', 'day', 'dc', 'event', 'hour', 'media-company', 'minute', 'month', 'mvpd', 'proxy', 'reason', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'proxy', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel/platform-version', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform-version', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/channel/platform-version/dc', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform-version', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/sso-type', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'sso-type', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/cdt/sso-type/dc', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'sso-type', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/channel', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/channel/dc', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'hour', 'media-company', 'minute', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'hour', 'media-company', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'hour', 'media-company', 'minute', 'month', 'mvpd', 'nsdk', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'hour', 'media-company', 'minute', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'dc', 'eap', 'hour', 'media-company', 'minute', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name', zoomClass: 'zmMIN', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/channel', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/channel/dc', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/application-name/application-version/dc', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/channel', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/channel/dc', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/customer-app/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'nsdk', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel/dc', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'sso-type', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'sso-type', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name', zoomClass: 'zmMIN', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/channel', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/channel/dc', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/application-name/application-version/dc', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'dc', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'customer-app', 'day', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/channel', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/channel/dc', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/customer-app/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'minute', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name', zoomClass: 'zmMIN', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/channel', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/channel/dc', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/application-name/application-version/dc', zoomClass: 'zmMIN', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/channel', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/channel/dc', zoomClass: 'zmMIN', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/customer-app/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/minute/requestor-id/platform/dc', zoomClass: 'zmMIN', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'minute', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'proxy', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel/platform-version', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform-version', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/channel/platform-version/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform-version', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/cdt/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/channel', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/channel/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'content-category', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category/channel', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/customer-app/content-category/channel/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'hour', 'media-company', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'hour', 'media-company', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'hour', 'media-company', 'month', 'mvpd', 'nsdk', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'hour', 'media-company', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'dc', 'eap', 'hour', 'media-company', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name', zoomClass: 'zmHR', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/channel', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/channel/dc', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/application-name/application-version/dc', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/channel', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/channel/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'content-category', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category/channel', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/content-category/channel/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/customer-app/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/channel/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'sso-type', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'sso-type', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name', zoomClass: 'zmHR', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/channel', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/channel/dc', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/application-name/application-version/dc', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/channel', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/channel/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/customer-app/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name', zoomClass: 'zmHR', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/channel', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/channel/dc', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/application-name/application-version/dc', zoomClass: 'zmHR', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/channel', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/channel/dc', zoomClass: 'zmHR', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/customer-app/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/hour/requestor-id/platform/dc', zoomClass: 'zmHR', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'hour', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'proxy', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'media-company', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'media-company', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'media-company', 'month', 'mvpd', 'nsdk', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'eap', 'media-company', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/eap/platform/nsdk/nsdk-version/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-failed', 'authn-pending', 'authn-successful', 'day', 'dc', 'eap', 'media-company', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'sso-type', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/proxy/mvpd/requestor-id/platform/nsdk/nsdk-version/sso-type/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'sso-type', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name', zoomClass: 'zmDAY', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/channel', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/channel/dc', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/application-name/application-version/dc', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel/platform-version', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'media-company', 'media-tokens', 'month', 'platform-version', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/channel/platform-version/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'channel', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'platform-version', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/sso-type', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'sso-type', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/cdt/sso-type/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'cdt', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'requestor-id', 'sso-type', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/channel', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/channel/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'content-category', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category/channel', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/content-category/channel/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/customer-app/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'device', 'media-company', 'media-tokens', 'month', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device/os-family', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'device', 'media-company', 'media-tokens', 'month', 'os-family', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/device/os-family/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'device', 'media-company', 'media-tokens', 'month', 'os-family', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'os-family', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'browser-family', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'os-family', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family/browser-version', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'browser-family', 'browser-version', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'os-family', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/os-family/browser-family/browser-version/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'browser-family', 'browser-version', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'os-family', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name', zoomClass: 'zmDAY', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/api', zoomClass: 'zmDAY', cols: ['api', 'application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/api/dc', zoomClass: 'zmDAY', cols: ['api', 'application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/channel', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/channel/dc', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/application-name/application-version/dc', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/channel', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/channel/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'content-category', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category/channel', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/content-category/channel/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/customer-app/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'nsdk', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'nsdk', 'nsdk-version', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/channel', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'media-company', 'media-tokens', 'month', 'nsdk', 'nsdk-version', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/channel/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'nsdk', 'nsdk-version', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'nsdk', 'nsdk-version', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/os-family', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'nsdk', 'nsdk-version', 'os-family', 'platform', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/os-family/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'nsdk', 'nsdk-version', 'os-family', 'platform', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/sso-type', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'media-company', 'media-tokens', 'month', 'nsdk', 'nsdk-version', 'platform', 'requestor-id', 'sso-type', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/platform/nsdk/nsdk-version/sso-type/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'nsdk', 'nsdk-version', 'platform', 'requestor-id', 'sso-type', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/device', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'device', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/device/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'device', 'media-company', 'media-tokens', 'month', 'mvpd', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name', zoomClass: 'zmDAY', cols: ['application-name', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/channel', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/channel/dc', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/application-name/application-version/dc', zoomClass: 'zmDAY', cols: ['application-name', 'application-version', 'authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/decision-type', zoomClass: 'zmDAY', cols: ['channel', 'customer-app', 'day', 'decision-attempts', 'decision-failed', 'decision-media-tokens', 'decision-successful', 'decision-type', 'media-company', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/channel/decision-type/dc', zoomClass: 'zmDAY', cols: ['channel', 'customer-app', 'day', 'dc', 'decision-attempts', 'decision-failed', 'decision-media-tokens', 'decision-successful', 'decision-type', 'media-company', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'content-category', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category/channel', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/content-category/channel/dc', zoomClass: 'zmDAY', cols: ['authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'channel', 'content-category', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/customer-app/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'customer-app', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'os-family', 'platform', 'proxy', 'requestor-id', 'year'] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family/browser-family', zoomClass: 'zmDAY', cols: [] },
+  { url: 'https://mgmt.auth.adobe.com/esm/v3/media-company/year/month/day/requestor-id/proxy/mvpd/platform/nsdk/nsdk-version/os-family/dc', zoomClass: 'zmDAY', cols: ['authn-attempts', 'authn-pending', 'authn-successful', 'authz-attempts', 'authz-failed', 'authz-latency', 'authz-rejected', 'authz-successful', 'clientless-failures', 'clientless-tokens', 'day', 'dc', 'media-company', 'media-tokens', 'month', 'mvpd', 'nsdk', 'nsdk-version', 'os-family', 'platform', 'proxy', 'requestor-id', 'unique-accounts', 'unique-sessions', 'year'] },
+];
+
+
+/* ---------- Time helpers ---------- */
+function iso(d) {
+  return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+function __shiftInstantToPstCalendar(d) {
+  return new Date(d.getTime() + ESM_SOURCE_UTC_OFFSET_MINUTES * 60 * 1000);
+}
+
+function __esmPartsToUtcMs(row) {
+  const year = Number(row?.year ?? 1970);
+  const month = Number(row?.month ?? 1);
+  const day = Number(row?.day ?? 1);
+  const hour = Number(row?.hour ?? 0);
+  const minute = Number(row?.minute ?? 0);
+
+  return Date.UTC(
+    Number.isFinite(year) ? year : 1970,
+    Number.isFinite(month) ? month - 1 : 0,
+    Number.isFinite(day) ? day : 1,
+    Number.isFinite(hour) ? hour : 0,
+    Number.isFinite(minute) ? minute : 0
+  ) - ESM_SOURCE_UTC_OFFSET_MINUTES * 60 * 1000;
+}
+
+function computeTimeWindow(zoomClass) {
+  const now = new Date();
+  const nowPst = __shiftInstantToPstCalendar(now);
+  const yPst = nowPst.getUTCFullYear();
+
+  if (zoomClass === 'zmYR') {
+    return { start: String(yPst - 1), end: iso(now) };
+  }
+
+  if (zoomClass === 'zmMO') {
+    const prev = new Date(Date.UTC(
+      nowPst.getUTCFullYear(),
+      nowPst.getUTCMonth() - 1,
+      1
+    ));
+    return {
+      start: `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}`,
+      end: iso(now)
+    };
+  }
+
+  if (zoomClass === 'zmDAY') {
+    const prev = new Date(Date.UTC(
+      nowPst.getUTCFullYear(),
+      nowPst.getUTCMonth(),
+      nowPst.getUTCDate() - 1
+    ));
+    return {
+      start: `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}-${String(prev.getUTCDate()).padStart(2, '0')}`,
+      end: iso(now)
+    };
+  }
+
+  if (zoomClass === 'zmHR') {
+    const start = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+    return { start: iso(start), end: iso(now) };
+  }
+
+  const start = new Date(now.getTime() - 60 * 60 * 1000);
+  return { start: iso(start), end: iso(now) };
+}
+
+function appendTimeParams(base, zoomClass) {
+  const t = computeTimeWindow(zoomClass);
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}start=${encodeURIComponent(t.start)}&end=${encodeURIComponent(t.end)}`;
+}
+
+/* ---------- Table + sorting ---------- */
+function td(value) {
+  const cell = document.createElement('td');
+  const v = value == null ? '' : String(value);
+  cell.textContent = v;
+  cell.title = v;
+  return cell;
+}
+
+const METRIC_COLUMNS = new Set([
+  'authn-attempts', 'authn-successful', 'authn-pending', 'authn-failed',
+  'clientless-tokens', 'clientless-failures',
+  'authz-attempts', 'authz-successful', 'authz-failed', 'authz-rejected',
+  'authz-latency', 'media-tokens',
+  'unique-accounts', 'unique-sessions', 'count'
+]);
+
+const DATE_PARTS = ['year', 'month', 'day', 'hour', 'minute'];
+
+function __toNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function __safeRate(numer, denom) {
+  const n = __toNumber(numer);
+  const d = __toNumber(denom);
+  if (n == null || d == null || d <= 0) return null;
+  const r = n / d;
+  return Number.isFinite(r) ? r : null;
+}
+
+function __fmtPct(rate) {
+  if (rate == null) return '--';
+  const p = rate * 100;
+  return Number.isFinite(p) ? (p.toFixed(2) + '%') : '--';
+}
+
+function buildDate(row) {
+  const ms = __esmPartsToUtcMs(row);
+  const d = new Date(ms);
+  return d.toLocaleString('en-US', {
+    timeZone: CLIENT_TIMEZONE,
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+}
+
+function getDefaultSortStack() {
+  return [{ col: 'DATE', dir: 'DESC' }];
+}
+
+function getCellValue(row, colKey, ctx) {
+  if (colKey === 'DATE') {
+    return __esmPartsToUtcMs(row);
+  }
+
+  if (ctx.authN && colKey === 'AuthN Success') {
+    const r = __safeRate(row['authn-successful'], row['authn-attempts']);
+    return r == null ? -1 : r;
+  }
+
+  if (ctx.authZ && colKey === 'AuthZ Success') {
+    const r = __safeRate(row['authz-successful'], row['authz-attempts']);
+    return r == null ? -1 : r;
+  }
+
+  if (colKey === 'COUNT') {
+    const n = __toNumber(row.count);
+    return n == null ? 0 : n;
+  }
+
+  const v = row[colKey];
+  if (v == null) return '';
+
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+
+  const n = __toNumber(v);
+  if (n != null) return n;
+
+  return String(v).toLowerCase();
+}
+
+function sortByStack(rows, sortStack, ctx) {
+  const stack = Array.isArray(sortStack) && sortStack.length
+    ? sortStack
+    : [{ col: 'DATE', dir: 'DESC' }];
+
+  return [...rows].sort((a, b) => {
+    for (const s of stack) {
+      const mul = s.dir === 'ASC' ? 1 : -1;
+      const va = getCellValue(a, s.col, ctx);
+      const vb = getCellValue(b, s.col, ctx);
+
+      if (va < vb) return -1 * mul;
+      if (va > vb) return 1 * mul;
+    }
+
+    return getCellValue(b, 'DATE', ctx) - getCellValue(a, 'DATE', ctx);
+  });
+}
+
+function refreshHeaderStates(state) {
+  if (!state?.thead) return;
+  state.thead.querySelectorAll('th').forEach(th => {
+    if (typeof th._updateState === 'function') th._updateState();
+  });
+}
+
+function renderBody(state) {
+  const { tbody, data, hasAuthN, hasAuthZ, hasCount, displayCols } = state;
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.appendChild(td(buildDate(r)));
+
+    if (hasAuthN) {
+      tr.appendChild(td(__fmtPct(__safeRate(r['authn-successful'], r['authn-attempts']))));
+    }
+
+    if (hasAuthZ) {
+      tr.appendChild(td(__fmtPct(__safeRate(r['authz-successful'], r['authz-attempts']))));
+    }
+
+    if (!hasAuthN && !hasAuthZ && hasCount) {
+      tr.appendChild(td(r.count));
+    }
+
+    displayCols.forEach(c => tr.appendChild(td(r[c] ?? '')));
+    tbody.appendChild(tr);
+  });
+}
+
+function applyResponsiveTableLayout(state, headers) {
+  if (!state?.table || !Array.isArray(headers) || !headers.length) return;
+
+  state.table.classList.remove('table-tight', 'table-ultra-tight');
+  if (headers.length >= 18) {
+    state.table.classList.add('table-ultra-tight');
+  } else if (headers.length >= 12) {
+    state.table.classList.add('table-tight');
+  }
+
+  const cg = state.colgroup;
+  if (!cg) return;
+  cg.innerHTML = '';
+
+  const weights = headers.map(h => {
+    if (h === 'DATE') return 1.55;
+    if (h === 'AuthN Success' || h === 'AuthZ Success' || h === 'COUNT') return 1.05;
+    if (String(h).length >= 20) return 1.2;
+    return 1;
+  });
+
+  const total = weights.reduce((sum, w) => sum + w, 0) || 1;
+  weights.forEach(w => {
+    const col = document.createElement('col');
+    col.style.width = `${(w / total) * 100}%`;
+    cg.appendChild(col);
+  });
+}
+
+function __sanitizeFilePart(s) {
+  return String(s || '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function buildCsvFileName(endpoint, queryUrl) {
+  const endpointPath = String(endpoint?.url || endpoint || '')
+    .replace(/^https:\/\/mgmt\.auth\.adobe\.com\/esm\/v3\//, '');
+
+  const endpointStem = __sanitizeFilePart(endpointPath.replace(/\//g, '_')) || 'esm_minute';
+  const zoomStem = __sanitizeFilePart(endpoint?.zoomClass || '');
+
+  let startTag = '';
+  let endTag = '';
+  try {
+    const u = new URL(queryUrl);
+    const startRaw = u.searchParams.get('start') || '';
+    const endRaw = u.searchParams.get('end') || '';
+    startTag = __sanitizeFilePart(startRaw.replace(/[^\dTZ:\-]/g, '').replace(/[:\-]/g, ''));
+    endTag = __sanitizeFilePart(endRaw.replace(/[^\dTZ:\-]/g, '').replace(/[:\-]/g, ''));
+  } catch (e) {
+    startTag = '';
+    endTag = '';
+  }
+
+  const stamp = [startTag, endTag].filter(Boolean).join('_');
+  const base = zoomStem ? `${zoomStem}_${endpointStem}` : endpointStem;
+  const core = stamp ? `${base}_${stamp}` : base;
+  return `${core}.csv`;
+}
+
+async function downloadCsv(queryUrl, endpoint, sortState) {
+  const r = await fetchWithRefresh(queryUrl, { esmLimit: ESM_CSV_RESULT_LIMIT });
+  if (!r.ok) return;
+
+  const j = await r.json();
+  if (!j.report || !j.report.length) return;
+
+  const row0 = j.report[0];
+  const ctx = {
+    authN: row0['authn-attempts'] != null && row0['authn-successful'] != null,
+    authZ: row0['authz-attempts'] != null && row0['authz-successful'] != null
+  };
+
+  const sortStack = sortState ? [sortState] : getDefaultSortStack();
+  const sorted = sortByStack(j.report, sortStack, ctx);
+
+  const headers = Object.keys(sorted[0]);
+  const lines = [
+    headers.join(','),
+    ...sorted.map(rw =>
+      headers.map(h => `"${String(rw[h] ?? '').replace(/"/g, '""')}"`).join(',')
+    )
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+
+  const a2 = document.createElement('a');
+  a2.href = url;
+  a2.download = buildCsvFileName(endpoint, queryUrl);
+  a2.click();
+
+  URL.revokeObjectURL(url);
+}
+
+async function runEsmEndpoint(endpoint) {
+  if (!endpoint?.url) return;
+
+  const host = document.getElementById('tableHost');
+  if (!host) return;
+
+  __netStart();
+  try {
+    const jsonUrl = appendFilterParams(
+      appendTimeParams(endpoint.url, endpoint.zoomClass) + '&format=json'
+    );
+
+    host.classList.remove('table-placeholder');
+    host.innerHTML = `
+      <div class="esm-table-wrapper">
+        <table>
+          <colgroup></colgroup>
+          <thead><tr></tr></thead>
+          <tbody><tr><td>Loading...</td></tr></tbody>
+          <tfoot><tr></tr></tfoot>
+        </table>
+      </div>
+    `;
+
+    const state = {
+      table: host.querySelector('table'),
+      colgroup: host.querySelector('colgroup'),
+      thead: host.querySelector('thead'),
+      tbody: host.querySelector('tbody'),
+      tfoot: host.querySelector('tfoot'),
+      queryUrl: jsonUrl,
+      endpoint: endpoint,
+      data: [],
+      sortStack: getDefaultSortStack(),
+      hasAuthN: false,
+      hasAuthZ: false,
+      hasCount: false,
+      displayCols: []
+    };
+
+    const showMessage = (msg) => {
+      state.tbody.innerHTML = '';
+      const tr = document.createElement('tr');
+      const td1 = document.createElement('td');
+      td1.textContent = msg || 'No data';
+      td1.colSpan = 999;
+      tr.appendChild(td1);
+      state.tbody.appendChild(tr);
+    };
+
+    const r = await fetchWithRefresh(jsonUrl, { esmLimit: ESM_INLINE_RESULT_LIMIT });
+    if (!r.ok) {
+      let txt = '';
+      try { txt = (await r.text()) || ''; } catch (e) {}
+      showMessage(txt.trim() || `Request failed (${r.status})`);
+      return;
+    }
+
+    let json;
+    try {
+      json = await r.json();
+    } catch (e) {
+      let txt = '';
+      try { txt = (await r.text()) || ''; } catch (e2) {}
+      showMessage(txt.trim() || 'No data');
+      return;
+    }
+
+    if (!json.report || !json.report.length) {
+      showMessage('No data');
+      return;
+    }
+
+    state.data = json.report;
+    const row0 = state.data[0];
+
+    state.hasAuthN = row0['authn-attempts'] != null && row0['authn-successful'] != null;
+    state.hasAuthZ = row0['authz-attempts'] != null && row0['authz-successful'] != null;
+    state.hasCount = row0['count'] != null;
+
+    state.displayCols = Object.keys(row0).filter(c =>
+      !METRIC_COLUMNS.has(c) &&
+      !DATE_PARTS.includes(c) &&
+      c !== 'media-company'
+    );
+
+    const headers = ['DATE'];
+    if (state.hasAuthN) headers.push('AuthN Success');
+    if (state.hasAuthZ) headers.push('AuthZ Success');
+    if (!state.hasAuthN && !state.hasAuthZ && state.hasCount) headers.push('COUNT');
+    headers.push(...state.displayCols);
+    applyResponsiveTableLayout(state, headers);
+
+    const ctx = { authN: state.hasAuthN, authZ: state.hasAuthZ };
+
+    const headRow = state.thead.querySelector('tr');
+    headRow.innerHTML = '';
+
+    headers.forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      th.title = (h === 'DATE')
+        ? `DATE (${CLIENT_TIMEZONE}, converted from PST)`
+        : h;
+      th.style.cursor = 'pointer';
+
+      const icon = document.createElement('span');
+      icon.className = 'sort-icon';
+      icon.style.marginLeft = '6px';
+      th.appendChild(icon);
+
+      th._updateState = () => {
+        const active = state.sortStack[0]?.col === h;
+        th.classList.toggle('active-sort', active);
+        icon.textContent = active ? (state.sortStack[0].dir === 'ASC' ? '^' : 'v') : '';
+      };
+
+      th.onclick = (e) => {
+        const existing = state.sortStack.find(s => s.col === h);
+
+        if (e.shiftKey && existing) {
+          existing.dir = existing.dir === 'DESC' ? 'ASC' : 'DESC';
+        } else if (e.shiftKey) {
+          state.sortStack.push({ col: h, dir: 'DESC' });
+        } else {
+          state.sortStack = [{
+            col: h,
+            dir: existing ? (existing.dir === 'DESC' ? 'ASC' : 'DESC') : 'DESC'
+          }];
+        }
+
+        state.data = sortByStack(state.data, state.sortStack, ctx);
+        renderBody(state);
+        refreshHeaderStates(state);
+      };
+
+      headRow.appendChild(th);
+    });
+
+    const ftRow = state.tfoot.querySelector('tr');
+    ftRow.innerHTML = '';
+
+    const ftd = document.createElement('td');
+    ftd.colSpan = headers.length;
+
+    const footer = document.createElement('div');
+    footer.className = 'esm-footer';
+
+    const csv = document.createElement('a');
+    csv.href = '#';
+    csv.textContent = 'CSV';
+    csv.onclick = e => {
+      e.preventDefault();
+      downloadCsv(state.queryUrl, state.endpoint, state.sortStack[0]);
+    };
+
+    const close = document.createElement('span');
+    close.className = 'esm-close';
+    close.textContent = ' x ';
+    close.onclick = () => {
+      host.classList.add('table-placeholder');
+      host.textContent = 'Click an endpoint brick to load its inline table.';
+    };
+
+    footer.appendChild(csv);
+    footer.appendChild(close);
+    ftd.appendChild(footer);
+    ftRow.appendChild(ftd);
+
+    state.data = sortByStack(state.data, state.sortStack, ctx);
+    renderBody(state);
+    refreshHeaderStates(state);
+  } catch (e) {
+    host.classList.remove('table-placeholder');
+    host.textContent = (e && e.message) ? e.message : 'No data';
+  } finally {
+    __netEnd();
+  }
+}
+
+/* ---------- Tree building ---------- */
+let __nodeSeq = 0;
+let __treeRoot = null;
+let __treeRenderRoot = null;
+let __nodeById = new Map();
+let __selectedNodeId = null;
+let __treeFocusNodeId = null;
+let __treeSearchTerm = '';
+let __treeZoomFilter = '';
+let __flowColorByMajor = new Map();
+let __revealedNodeIds = new Set();
+let __expandedNodeIds = new Set();
+let __revealSeq = 0;
+
+const TIME_SPINE = new Set([
+  'media-company', 'year', 'month', 'day', 'hour', 'minute'
+]);
+
+const FLOW_FIXED_COLORS = {
+  'time-core': '#4e7089',
+  'proxy': '#f0bf20',
+  'event': '#c66ca8',
+  'requestor-id': '#5f9b9c',
+  'platform': '#e56f2e',
+  'mvpd': '#22d5db',
+  'application-name': '#8a6a00',
+  'customer-app': '#c79c5c'
+};
+
+const FLOW_PALETTE = [
+  '#4ea8de', '#8fbc8f', '#f28482', '#9b5de5', '#43aa8b', '#f8961e',
+  '#577590', '#f15bb5', '#90be6d', '#c77dff', '#00b4d8', '#e76f51'
+];
+
+const ZOOM_LEVEL_ORDER = ['YR', 'MO', 'DAY', 'HR', 'MIN'];
+const ZOOM_LINE_COLORS = {
+  YR: '#63b9de',
+  MO: '#26c248',
+  DAY: '#d83f3f',
+  HR: '#f08f1d',
+  MIN: '#86601f',
+  MIX: '#55768f',
+  NONE: '#95a9b9'
+};
+
+const TETRIS_SHAPES = [
+  [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]],
+  [[0, 0], [1, 0], [2, 0], [3, 0], [1, 1], [2, 1]],
+  [[0, 0], [0, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
+  [[1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [1, 2]],
+  [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [3, 2]],
+  [[0, 0], [1, 0], [2, 0], [0, 1], [0, 2], [1, 2]],
+  [[0, 0], [1, 0], [1, 1], [1, 2], [2, 2], [3, 2]],
+  [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2], [1, 2]],
+  [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [3, 1]]
+];
+
+function createNode(label, parent = null) {
+  return {
+    id: ++__nodeSeq,
+    label,
+    parent,
+    children: [],
+    childMap: new Map(),
+    endpoint: null,
+    searchBlob: '',
+    searchBlobCompact: '',
+    pathParts: [],
+    majorKey: 'time-core',
+    flow: 0,
+    selfMatched: false,
+    renderOrder: 0,
+    depth: 0,
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0,
+    fontSize: 11,
+    displayLabel: '',
+    visible: true,
+    zoomCounts: null,
+    dominantZoom: '',
+    revealedOrder: -1
+  };
+}
+
+function sortChildrenRec(node) {
+  node.children.sort((a, b) => {
+    const pa = SORT_PRIORITY.has(a.label) ? SORT_PRIORITY.get(a.label) : 1000;
+    const pb = SORT_PRIORITY.has(b.label) ? SORT_PRIORITY.get(b.label) : 1000;
+    if (pa !== pb) return pa - pb;
+    return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+  });
+  node.children.forEach(sortChildrenRec);
+}
+
+function __deriveMajorKey(parts) {
+  for (const p of parts) {
+    if (!TIME_SPINE.has(p)) return p;
+  }
+  return 'time-core';
+}
+
+function __initFlowColorMap() {
+  __flowColorByMajor = new Map(Object.entries(FLOW_FIXED_COLORS));
+}
+
+function __getFlowColor(majorKey) {
+  if (__flowColorByMajor.has(majorKey)) return __flowColorByMajor.get(majorKey);
+  const idx = __flowColorByMajor.size % FLOW_PALETTE.length;
+  const c = FLOW_PALETTE[idx];
+  __flowColorByMajor.set(majorKey, c);
+  return c;
+}
+
+function __annotateTreeMeta(node, parentPath = []) {
+  const path = node.label === '__root__'
+    ? []
+    : [...parentPath, node.label];
+
+  node.pathParts = path;
+  node.majorKey = __deriveMajorKey(path);
+  node.children.forEach(child => __annotateTreeMeta(child, path));
+}
+
+function buildTree() {
+  __nodeSeq = 0;
+  __nodeById = new Map();
+  __initFlowColorMap();
+
+  const root = createNode('__root__', null);
+
+  ESM_ENDPOINTS.forEach(ep => {
+    const path = ep.url.replace('https://mgmt.auth.adobe.com/esm/v3/', '');
+    const parts = path.split('/').filter(Boolean);
+
+    let cur = root;
+    for (const part of parts) {
+      if (!cur.childMap.has(part)) {
+        const child = createNode(part, cur);
+        cur.childMap.set(part, child);
+        cur.children.push(child);
+      }
+      cur = cur.childMap.get(part);
+    }
+
+    cur.endpoint = ep;
+    cur.searchBlob = (ep.url + ' ' + ep.cols.join(' ')).toLowerCase();
+    cur.searchBlobCompact = cur.searchBlob.replace(/\s+/g, '');
+  });
+
+  sortChildrenRec(root);
+  __annotateTreeMeta(root);
+
+  const renderRoot = root.children[0] || root;
+
+  (function collect(node) {
+    __nodeById.set(node.id, node);
+    node.children.forEach(collect);
+  })(root);
+
+  __treeRoot = root;
+  __treeRenderRoot = renderRoot;
+}
+
+function normalizeSearchTerm(raw) {
+  return (raw || '').toLowerCase().split(' ').join('');
+}
+
+function __clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+function applyVisibility(node, term, zoomFilter) {
+  const labelMatch = !!(term && node.label.toLowerCase().includes(term));
+  const neededZoomClass = zoomFilter ? `zm${zoomFilter}` : '';
+  let endpointMatch = false;
+
+  if (node.endpoint) {
+    const zoomPass = !neededZoomClass || node.endpoint.zoomClass === neededZoomClass;
+    const searchPass = !term || (node.searchBlobCompact || node.searchBlob).includes(term);
+    endpointMatch = zoomPass && searchPass;
+  }
+
+  let childMatch = false;
+  for (const child of node.children) {
+    if (applyVisibility(child, term, zoomFilter)) childMatch = true;
+  }
+
+  node.selfMatched = labelMatch || endpointMatch || childMatch;
+  node.visible = (node.label === '__root__') || endpointMatch || childMatch;
+  return node.visible;
+}
+
+function computeVisibleFlow(node) {
+  if (!node.visible) {
+    node.flow = 0;
+    node.zoomCounts = null;
+    node.dominantZoom = '';
+    return 0;
+  }
+
+  const zoomCounts = __emptyZoomCounts();
+  let flow = node.endpoint ? 1 : 0;
+  if (node.endpoint) {
+    const endpointZoom = __zoomKeyFromEndpoint(node.endpoint);
+    if (endpointZoom) zoomCounts[endpointZoom] += 1;
+  }
+
+  node.children.forEach(child => {
+    flow += computeVisibleFlow(child);
+    __mergeZoomCounts(zoomCounts, child.zoomCounts);
+  });
+
+  node.flow = flow;
+  node.zoomCounts = zoomCounts;
+  node.dominantZoom = __pickDominantZoom(zoomCounts);
+  return flow;
+}
+
+function __zoomKeyFromEndpoint(endpoint) {
+  const raw = String(endpoint?.zoomClass || '').replace(/^zm/i, '').toUpperCase();
+  return ZOOM_LEVEL_ORDER.includes(raw) ? raw : '';
+}
+
+function __zoomKeyFromPath(pathParts) {
+  if (!Array.isArray(pathParts)) return '';
+  for (let i = pathParts.length - 1; i >= 0; i -= 1) {
+    const token = pathParts[i];
+    if (token === 'minute') return 'MIN';
+    if (token === 'hour') return 'HR';
+    if (token === 'day') return 'DAY';
+    if (token === 'month') return 'MO';
+    if (token === 'year') return 'YR';
+  }
+  return '';
+}
+
+function __zoomKeyForNode(node) {
+  const endpointZoom = __zoomKeyFromEndpoint(node?.endpoint);
+  if (endpointZoom) return endpointZoom;
+
+  if (node?.label === 'minute') return 'MIN';
+  if (node?.label === 'hour') return 'HR';
+  if (node?.label === 'day') return 'DAY';
+  if (node?.label === 'month') return 'MO';
+  if (node?.label === 'year') return 'YR';
+
+  const pathZoom = __zoomKeyFromPath(node?.pathParts);
+  if (pathZoom) return pathZoom;
+
+  return node?.dominantZoom || '';
+}
+
+function __emptyZoomCounts() {
+  const out = {};
+  ZOOM_LEVEL_ORDER.forEach(z => {
+    out[z] = 0;
+  });
+  return out;
+}
+
+function __mergeZoomCounts(target, source) {
+  if (!target || !source) return;
+  ZOOM_LEVEL_ORDER.forEach(z => {
+    target[z] += source[z] || 0;
+  });
+}
+
+function __pickDominantZoom(counts) {
+  let winner = '';
+  let best = 0;
+  ZOOM_LEVEL_ORDER.forEach(z => {
+    const value = counts?.[z] || 0;
+    if (value > best) {
+      best = value;
+      winner = z;
+    }
+  });
+  return winner;
+}
+
+function __getZoomRailColor(zoom) {
+  if (zoom && ZOOM_LINE_COLORS[zoom]) return ZOOM_LINE_COLORS[zoom];
+  return ZOOM_LINE_COLORS.MIX;
+}
+
+function __visibleChildren(node) {
+  return node.children.filter(c => c.visible && (c.flow || 0) > 0);
+}
+
+function __resetPuzzleRevealState() {
+  __revealedNodeIds = new Set();
+  __expandedNodeIds = new Set();
+  __revealSeq = 0;
+  [...__nodeById.values()].forEach(node => {
+    node.revealedOrder = -1;
+  });
+}
+
+function __markNodeRevealed(node) {
+  if (!node) return false;
+  if (__revealedNodeIds.has(node.id)) return false;
+  __revealedNodeIds.add(node.id);
+  node.revealedOrder = __revealSeq++;
+  return true;
+}
+
+function __revealChildren(node) {
+  if (!node) return 0;
+  const kids = __visibleChildren(node);
+  let added = 0;
+  kids.forEach(child => {
+    if (__markNodeRevealed(child)) added += 1;
+  });
+  if (kids.length) __expandedNodeIds.add(node.id);
+  return added;
+}
+
+function __ensurePuzzleSeed(renderRoot) {
+  if (!renderRoot || !renderRoot.visible || (renderRoot.flow || 0) <= 0) return;
+  if (__revealedNodeIds.size === 0) {
+    __markNodeRevealed(renderRoot);
+    __revealChildren(renderRoot);
+  } else if (!__revealedNodeIds.has(renderRoot.id)) {
+    __markNodeRevealed(renderRoot);
+  }
+}
+
+function __truncateTextByPx(text, maxWidthPx, fontSizePx) {
+  const raw = String(text || '');
+  if (!raw) return '';
+  const safePx = Math.max(10, maxWidthPx);
+  const charPx = Math.max(4.8, fontSizePx * 0.58);
+  const maxChars = Math.max(1, Math.floor(safePx / charPx));
+  if (raw.length <= maxChars) return raw;
+  if (maxChars <= 1) return '…';
+  return `${raw.slice(0, maxChars - 1)}…`;
+}
+
+function __normalizeShape(shape) {
+  const minX = Math.min(...shape.map(p => p[0]));
+  const minY = Math.min(...shape.map(p => p[1]));
+  return shape.map(([x, y]) => [x - minX, y - minY]);
+}
+
+function __rotateShape(shape, turns) {
+  let out = shape.map(([x, y]) => [x, y]);
+  const n = ((turns % 4) + 4) % 4;
+  for (let i = 0; i < n; i += 1) {
+    out = out.map(([x, y]) => [y, -x]);
+    out = __normalizeShape(out);
+  }
+  return out;
+}
+
+function __flipShape(shape) {
+  return __normalizeShape(shape.map(([x, y]) => [-x, y]));
+}
+
+function __shapeBounds(shape) {
+  const maxX = Math.max(...shape.map(p => p[0]));
+  const maxY = Math.max(...shape.map(p => p[1]));
+  return {
+    w: maxX + 1,
+    h: maxY + 1
+  };
+}
+
+function __pickBrickShape(node) {
+  const baseIdx = (node.id + (node.depth * 3)) % TETRIS_SHAPES.length;
+  let shape = TETRIS_SHAPES[baseIdx].map(([x, y]) => [x, y]);
+  if (((node.id + node.depth) % 2) === 0) {
+    shape = __flipShape(shape);
+  }
+  shape = __rotateShape(shape, (node.id + node.depth) % 4);
+  return __normalizeShape(shape);
+}
+
+function __ensureBoardRows(board, rowsNeeded, cols) {
+  while (board.length < rowsNeeded) {
+    board.push(new Array(cols).fill(0));
+  }
+}
+
+function __canPlaceShape(board, shape, baseCol, baseRow, cols) {
+  for (let i = 0; i < shape.length; i += 1) {
+    const [sx, sy] = shape[i];
+    const c = baseCol + sx;
+    const r = baseRow + sy;
+    if (r < 0 || c < 1 || c >= (cols - 1)) return false;
+    if (!board[r] || board[r][c]) return false;
+  }
+  return true;
+}
+
+function __stampShape(board, shape, baseCol, baseRow, nodeId) {
+  shape.forEach(([sx, sy]) => {
+    board[baseRow + sy][baseCol + sx] = nodeId;
+  });
+}
+
+function __mixWithWhite(hex, factor) {
+  const h = String(hex || '').trim();
+  const m = h.match(/^#?([0-9a-fA-F]{6})$/);
+  if (!m) return hex;
+  const n = m[1];
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  const t = __clamp(factor, 0, 0.9);
+  const rr = Math.round(r + ((255 - r) * t));
+  const gg = Math.round(g + ((255 - g) * t));
+  const bb = Math.round(b + ((255 - b) * t));
+  return `rgb(${rr}, ${gg}, ${bb})`;
+}
+
+function layoutTetrisTree(root, viewportWidth, viewportMinHeight) {
+  const margin = 8;
+  const targetCols = 34;
+  const cellPx = __clamp(
+    Math.floor((viewportWidth - (margin * 2)) / targetCols),
+    16,
+    24
+  );
+  const cols = Math.max(14, Math.floor((viewportWidth - (margin * 2)) / cellPx));
+  const boardWidth = (cols * cellPx) + (margin * 2);
+
+  const nodes = [];
+  const edgePairs = [];
+  let maxDepth = 0;
+  let visitSeq = 0;
+
+  function collect(node, depth) {
+    if (!node.visible || (node.flow || 0) <= 0) return;
+    node.depth = depth;
+    node.__seq = visitSeq++;
+    nodes.push(node);
+    maxDepth = Math.max(maxDepth, depth);
+    const children = __visibleChildren(node);
+    children.forEach(child => {
+      edgePairs.push({ parent: node, child });
+      collect(child, depth + 1);
+    });
+  }
+  collect(root, 0);
+
+  if (!nodes.length) {
+    return {
+      nodes: [],
+      edges: [],
+      width: viewportWidth,
+      height: viewportMinHeight,
+      cols: 0,
+      rowsUsed: 0,
+      cellPx: 0,
+      margin: 0,
+      board: []
+    };
+  }
+
+  const depthGroups = Array.from({ length: maxDepth + 1 }, () => []);
+  nodes.forEach(node => {
+    depthGroups[node.depth].push(node);
+  });
+  depthGroups.forEach(group => {
+    group.sort((a, b) => {
+      const ap = a.parent ? (a.parent.__seq ?? -1) : -1;
+      const bp = b.parent ? (b.parent.__seq ?? -1) : -1;
+      if (ap !== bp) return ap - bp;
+      if (a.__seq !== b.__seq) return a.__seq - b.__seq;
+      return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+    });
+  });
+
+  const board = [];
+  const placementById = new Map();
+  let rowBase = 1;
+  let maxUsedRow = 1;
+
+  for (let depth = 0; depth < depthGroups.length; depth += 1) {
+    const group = depthGroups[depth];
+    if (!group.length) continue;
+
+    let depthMaxRow = rowBase;
+    let cursorCol = 1;
+
+    group.forEach(node => {
+      const shape = __pickBrickShape(node);
+      const bounds = __shapeBounds(shape);
+
+      let col = cursorCol;
+      if (node.parent && placementById.has(node.parent.id)) {
+        const parentPlacement = placementById.get(node.parent.id);
+        col = __clamp(
+          Math.round(parentPlacement.centerCol - (bounds.w / 2)),
+          1,
+          Math.max(1, cols - bounds.w - 1)
+        );
+      }
+
+      let row = rowBase;
+      let placed = false;
+      let safety = 0;
+
+      while (!placed && safety < 12000) {
+        if (col + bounds.w > cols - 1) {
+          col = 1;
+          row += 1;
+        }
+        __ensureBoardRows(board, row + bounds.h + 2, cols);
+        if (__canPlaceShape(board, shape, col, row, cols)) {
+          __stampShape(board, shape, col, row, node.id);
+          placed = true;
+          break;
+        }
+        col += 1;
+        safety += 1;
+      }
+
+      if (!placed) {
+        row = board.length + 1;
+        col = 1;
+        __ensureBoardRows(board, row + bounds.h + 2, cols);
+        while (!__canPlaceShape(board, shape, col, row, cols)) {
+          col += 1;
+          if (col + bounds.w > cols - 1) {
+            col = 1;
+            row += 1;
+            __ensureBoardRows(board, row + bounds.h + 2, cols);
+          }
+        }
+        __stampShape(board, shape, col, row, node.id);
+      }
+
+      const cells = shape.map(([sx, sy]) => ({ c: col + sx, r: row + sy }));
+      const minC = Math.min(...cells.map(v => v.c));
+      const maxC = Math.max(...cells.map(v => v.c));
+      const minR = Math.min(...cells.map(v => v.r));
+      const maxR = Math.max(...cells.map(v => v.r));
+      const centerCol = (minC + maxC + 1) / 2;
+      const centerRow = (minR + maxR + 1) / 2;
+
+      node.x = margin + (centerCol * cellPx);
+      node.y = margin + (centerRow * cellPx);
+      node.w = (maxC - minC + 1) * cellPx;
+      node.h = (maxR - minR + 1) * cellPx;
+      node.__cells = cells;
+      node.__minC = minC;
+      node.__maxC = maxC;
+      node.__minR = minR;
+      node.__maxR = maxR;
+
+      placementById.set(node.id, {
+        centerCol,
+        minC,
+        maxC,
+        minR,
+        maxR
+      });
+
+      depthMaxRow = Math.max(depthMaxRow, maxR);
+      maxUsedRow = Math.max(maxUsedRow, maxR + 1);
+      cursorCol = col + bounds.w + 1;
+    });
+
+    rowBase = depthMaxRow + 2;
+  }
+
+  const rowsUsed = Math.max(maxUsedRow + 1, rowBase + 1);
+  const boardHeight = Math.max(viewportMinHeight, (rowsUsed * cellPx) + (margin * 2));
+
+  const edges = edgePairs
+    .map(({ parent, child }) => {
+      const p = placementById.get(parent.id);
+      const c = placementById.get(child.id);
+      if (!p || !c) return null;
+
+      const startX = margin + (p.centerCol * cellPx);
+      const startY = margin + ((p.maxR + 1) * cellPx) - Math.max(2, cellPx * 0.22);
+      const endX = margin + (c.centerCol * cellPx);
+      const endY = margin + (c.minR * cellPx) + Math.max(2, cellPx * 0.22);
+      const midY = startY + ((endY - startY) * 0.52);
+
+      return {
+        parent,
+        child,
+        startX,
+        startY,
+        midY,
+        endX,
+        endY,
+        color: __getZoomRailColor(__zoomKeyForNode(child)),
+        dimmed: !!(__treeSearchTerm && !child.selfMatched)
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    nodes,
+    edges,
+    width: boardWidth,
+    height: boardHeight,
+    cols,
+    rowsUsed,
+    cellPx,
+    margin,
+    board
+  };
+}
+
+function __buildBrickLabelGeometry(node, canvasWidth, canvasHeight) {
+  const fontSize = node.endpoint ? 10.75 : 9.75;
+  const bubblePadX = 4;
+  const bubbleH = fontSize + 6;
+  const maxInsideW = Math.max(26, node.w - 8);
+  const labelText = __truncateTextByPx(node.label, maxInsideW - (bubblePadX * 2), fontSize);
+  const textW = Math.max(8, labelText.length * fontSize * 0.58);
+  const bubbleW = Math.min(maxInsideW, Math.max(24, textW + (bubblePadX * 2)));
+  const bubbleX = __clamp(node.x - (bubbleW / 2), 2, Math.max(2, canvasWidth - bubbleW - 2));
+  const bubbleY = __clamp(node.y - (bubbleH / 2), 2, Math.max(2, canvasHeight - bubbleH - 2));
+
+  return {
+    fontSize,
+    bubbleX,
+    bubbleY,
+    bubbleW,
+    bubbleH,
+    textX: bubbleX + (bubbleW / 2),
+    textY: bubbleY + (bubbleH / 2),
+    labelText
+  };
+}
+
+function __svg(tag) {
+  return document.createElementNS('http://www.w3.org/2000/svg', tag);
+}
+
+function renderFlowLegend() {
+  const legend = document.getElementById('flowLegend');
+  if (!legend) return;
+
+  legend.innerHTML = '';
+  ZOOM_LEVEL_ORDER.forEach(zoom => {
+    const item = document.createElement('span');
+    item.className = 'flow-key';
+
+    const dot = document.createElement('span');
+    dot.className = 'flow-dot';
+    dot.style.background = __getZoomRailColor(zoom);
+
+    const label = document.createElement('span');
+    label.textContent = `zm${zoom}`;
+
+    item.appendChild(dot);
+    item.appendChild(label);
+    legend.appendChild(item);
+  });
+
+  const mixed = document.createElement('span');
+  mixed.className = 'flow-key';
+
+  const mixedDot = document.createElement('span');
+  mixedDot.className = 'flow-dot';
+  mixedDot.style.background = ZOOM_LINE_COLORS.MIX;
+
+  const mixedLabel = document.createElement('span');
+  mixedLabel.textContent = 'mixed';
+
+  mixed.appendChild(mixedDot);
+  mixed.appendChild(mixedLabel);
+  legend.appendChild(mixed);
+}
+
+function updateSelectionPanel(node) {
+  const urlEl = document.getElementById('selectedEndpointUrl');
+  const colsEl = document.getElementById('selectedColumns');
+  const helpEl = document.getElementById('selectionHelp');
+
+  if (!node || !node.endpoint) {
+    urlEl.textContent = 'No endpoint selected.';
+    colsEl.innerHTML = '';
+    helpEl.textContent = 'Select any endpoint brick to run that ESM URL. Click a branch brick to zoom into that subtree; use reset to return.';
+    return;
+  }
+
+  urlEl.textContent = node.endpoint.url;
+  colsEl.innerHTML = '';
+  node.endpoint.cols.forEach(c => {
+    const span = document.createElement('span');
+    span.className = 'col-chip';
+    span.textContent = c;
+    colsEl.appendChild(span);
+  });
+  helpEl.textContent = `${node.endpoint.cols.length} columns in this endpoint (${node.endpoint.zoomClass}).`;
+}
+
+function renderTree() {
+  if (!__treeRenderRoot) return;
+
+  applyVisibility(__treeRoot, __treeSearchTerm, __treeZoomFilter);
+  computeVisibleFlow(__treeRoot);
+
+  if (__selectedNodeId != null) {
+    const selected = __nodeById.get(__selectedNodeId);
+    if (!selected || !selected.visible) {
+      __selectedNodeId = null;
+      updateSelectionPanel(null);
+    }
+  }
+
+  if (__treeFocusNodeId != null) {
+    const focused = __nodeById.get(__treeFocusNodeId);
+    if (!focused || !focused.visible || (focused.flow || 0) <= 0) {
+      __treeFocusNodeId = null;
+    }
+  }
+
+  const renderRoot = (__treeFocusNodeId != null && __nodeById.has(__treeFocusNodeId))
+    ? __nodeById.get(__treeFocusNodeId)
+    : __treeRenderRoot;
+
+  if (!renderRoot || !renderRoot.visible || (renderRoot.flow || 0) <= 0) {
+    const svgEmpty = document.getElementById('treeSvg');
+    if (svgEmpty) svgEmpty.innerHTML = '';
+    document.getElementById('treeMeta').textContent = '0 endpoints visible';
+    renderFlowLegend();
+    return;
+  }
+
+  const svg = document.getElementById('treeSvg');
+  const viewport = document.querySelector('.tree-viewport');
+  svg.innerHTML = '';
+
+  const viewportWidth = Math.max(360, Math.floor((viewport?.clientWidth || 1200) - 2));
+  const viewportHeight = Math.max(260, Math.floor((viewport?.clientHeight || 560) - 2));
+  const layout = layoutTetrisTree(renderRoot, viewportWidth, viewportHeight);
+  const {
+    nodes,
+    edges,
+    width: canvasWidth,
+    height: canvasHeight,
+    cols,
+    rowsUsed,
+    cellPx,
+    margin,
+    board
+  } = layout;
+
+  if (!nodes.length) {
+    svg.innerHTML = '';
+    document.getElementById('treeMeta').textContent = '0 endpoints visible';
+    renderFlowLegend();
+    return;
+  }
+
+  svg.setAttribute('width', String(canvasWidth));
+  svg.setAttribute('height', String(canvasHeight));
+  svg.setAttribute('viewBox', `0 0 ${canvasWidth} ${canvasHeight}`);
+  svg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+  svg.style.width = '100%';
+  svg.style.height = `${canvasHeight}px`;
+
+  const boardLayer = __svg('g');
+  const railsLayer = __svg('g');
+  const bricksLayer = __svg('g');
+  const overlayLayer = __svg('g');
+
+  const resetFocus = () => {
+    if (__treeFocusNodeId != null) {
+      __treeFocusNodeId = null;
+      renderTree();
+    }
+  };
+  svg.onclick = resetFocus;
+
+  for (let r = 0; r < rowsUsed; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const cell = __svg('rect');
+      cell.setAttribute('x', String(margin + (c * cellPx) + 1));
+      cell.setAttribute('y', String(margin + (r * cellPx) + 1));
+      cell.setAttribute('width', String(Math.max(1, cellPx - 2)));
+      cell.setAttribute('height', String(Math.max(1, cellPx - 2)));
+      cell.setAttribute(
+        'class',
+        `tetris-board-cell${((r + c) % 2 === 0) ? ' alt' : ''}`
+      );
+      if (board?.[r]?.[c]) {
+        cell.setAttribute('fill-opacity', '0.84');
+      } else {
+        cell.setAttribute('fill-opacity', '0.52');
+      }
+      boardLayer.appendChild(cell);
+    }
+  }
+
+  edges.forEach(edge => {
+    const pathD = `M ${edge.startX} ${edge.startY} V ${edge.midY} H ${edge.endX} V ${edge.endY}`;
+
+    const casing = __svg('path');
+    casing.setAttribute('class', `tetris-edge-casing${edge.dimmed ? ' dimmed' : ''}`);
+    casing.setAttribute('d', pathD);
+    railsLayer.appendChild(casing);
+
+    const rail = __svg('path');
+    rail.setAttribute('class', `tetris-edge${edge.dimmed ? ' dimmed' : ''}`);
+    rail.setAttribute('d', pathD);
+    rail.setAttribute('stroke', edge.color);
+    railsLayer.appendChild(rail);
+  });
+
+  nodes
+    .slice()
+    .sort((a, b) => {
+      if (a.depth !== b.depth) return a.depth - b.depth;
+      if (a.y !== b.y) return a.y - b.y;
+      return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+    })
+    .forEach(node => {
+      const isRenderRoot = node.id === renderRoot.id;
+      const isDimmed = !!(__treeSearchTerm && !node.selfMatched);
+      const nodeClass = 'tetris-node' +
+        (node.endpoint ? ' endpoint' : '') +
+        (__selectedNodeId === node.id ? ' selected' : '') +
+        (isDimmed ? ' dimmed' : '');
+
+      const group = __svg('g');
+      group.setAttribute('class', nodeClass);
+      group.style.cursor = node.endpoint ? 'pointer' : (isRenderRoot ? 'default' : 'zoom-in');
+
+      const zoomColor = __getZoomRailColor(__zoomKeyForNode(node));
+      const fillColor = __mixWithWhite(zoomColor, node.endpoint ? 0.2 : 0.46);
+      const strokeColor = __mixWithWhite(zoomColor, node.endpoint ? 0.02 : 0.2);
+
+      const cells = Array.isArray(node.__cells) ? node.__cells : [];
+      cells.forEach(cell => {
+        const cellRect = __svg('rect');
+        cellRect.setAttribute('class', 'tetris-piece-cell');
+        cellRect.setAttribute('x', String(margin + (cell.c * cellPx) + 1));
+        cellRect.setAttribute('y', String(margin + (cell.r * cellPx) + 1));
+        cellRect.setAttribute('width', String(Math.max(1, cellPx - 2)));
+        cellRect.setAttribute('height', String(Math.max(1, cellPx - 2)));
+        cellRect.setAttribute('fill', fillColor);
+        cellRect.setAttribute('stroke', strokeColor);
+        group.appendChild(cellRect);
+      });
+
+      const labelGeom = __buildBrickLabelGeometry(node, canvasWidth, canvasHeight);
+      const labelBg = __svg('rect');
+      labelBg.setAttribute('class', 'tetris-label-bg');
+      labelBg.setAttribute('x', String(labelGeom.bubbleX));
+      labelBg.setAttribute('y', String(labelGeom.bubbleY));
+      labelBg.setAttribute('width', String(labelGeom.bubbleW));
+      labelBg.setAttribute('height', String(labelGeom.bubbleH));
+
+      const labelText = __svg('text');
+      labelText.setAttribute('class', 'tetris-label');
+      labelText.setAttribute('x', String(labelGeom.textX));
+      labelText.setAttribute('y', String(labelGeom.textY));
+      labelText.style.fontSize = `${labelGeom.fontSize}px`;
+      labelText.textContent = labelGeom.labelText;
+
+      const title = __svg('title');
+      title.textContent = node.endpoint
+        ? `${node.label}\n${node.endpoint.url}`
+        : node.pathParts.join(' / ');
+      group.appendChild(title);
+
+      group.appendChild(labelBg);
+      group.appendChild(labelText);
+
+      group.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (node.endpoint) {
+          __selectedNodeId = node.id;
+          updateSelectionPanel(node);
+          renderTree();
+          await runEsmEndpoint(node.endpoint);
+          return;
+        }
+        if (isRenderRoot) return;
+        __treeFocusNodeId = node.id;
+        renderTree();
+      });
+
+      bricksLayer.appendChild(group);
+    });
+
+  if (__treeFocusNodeId != null) {
+    const resetG = __svg('g');
+    resetG.setAttribute('class', 'tree-reset');
+    resetG.setAttribute('transform', 'translate(12,12)');
+    resetG.style.cursor = 'pointer';
+    resetG.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetFocus();
+    });
+
+    const rr = __svg('rect');
+    rr.setAttribute('x', '0');
+    rr.setAttribute('y', '0');
+    rr.setAttribute('width', '74');
+    rr.setAttribute('height', '22');
+    resetG.appendChild(rr);
+
+    const rt = __svg('text');
+    rt.setAttribute('x', '37');
+    rt.setAttribute('y', '11');
+    rt.setAttribute('text-anchor', 'middle');
+    rt.setAttribute('dominant-baseline', 'middle');
+    rt.textContent = 'RESET';
+    resetG.appendChild(rt);
+    overlayLayer.appendChild(resetG);
+  }
+
+  svg.appendChild(boardLayer);
+  svg.appendChild(railsLayer);
+  svg.appendChild(bricksLayer);
+  svg.appendChild(overlayLayer);
+
+  const visibleCount = [...__nodeById.values()].filter(n => n.visible && n.endpoint).length;
+  const totalCount = ESM_ENDPOINTS.length;
+  const zoomLabel = __treeZoomFilter ? ` (${__treeZoomFilter})` : '';
+  const focusLabel = (__treeFocusNodeId != null)
+    ? ` | focus: ${renderRoot.pathParts.join(' / ')}`
+    : '';
+  document.getElementById('treeMeta').textContent = `${visibleCount}/${totalCount} endpoints visible${zoomLabel}${focusLabel}`;
+  renderFlowLegend();
+}
+
+function applyTreeSearch() {
+  __treeSearchTerm = normalizeSearchTerm(document.getElementById('searchText')?.value ?? '');
+  __treeZoomFilter = document.getElementById('filterSelect')?.value ?? '';
+  renderTree();
+}
+
+function resetTreeSearch() {
+  resetList();
+}
+
+function highlightText() {
+  const input = document.getElementById('searchText');
+  if (input) input.value = normalizeSearchTerm(input.value);
+  applyTreeSearch();
+}
+
+function filterList() {
+  applyTreeSearch();
+}
+
+function resetList() {
+  const st = document.getElementById('searchText');
+  if (st) st.value = '';
+  const fs = document.getElementById('filterSelect');
+  if (fs) fs.selectedIndex = 0;
+  __treeSearchTerm = '';
+  __treeZoomFilter = '';
+  __treeFocusNodeId = null;
+  renderTree();
+}
+
+/* ---------- MVPD hover hint ---------- */
+function enableMvpdHoverHint() {
+  const sel = document.getElementById('fltr_mvpdId');
+  if (!sel || sel._mvpdHoverAttached) return;
+  sel._mvpdHoverAttached = true;
+
+  let lastOpt = null;
+  const clear = () => {
+    if (lastOpt) lastOpt.classList.remove('mvpd-hover');
+    lastOpt = null;
+  };
+  const set = (opt) => {
+    if (!opt || opt === lastOpt) return;
+    if (lastOpt) lastOpt.classList.remove('mvpd-hover');
+    opt.classList.add('mvpd-hover');
+    lastOpt = opt;
+  };
+
+  const optionFromEvent = (e) => {
+    if (e.target && e.target.tagName === 'OPTION') return e.target;
+
+    const n = sel.options ? sel.options.length : 0;
+    if (!n) return null;
+
+    if (!sel.multiple && sel.size <= 1) return null;
+
+    const rect = sel.getBoundingClientRect();
+    const y = (e.clientY - rect.top) + sel.scrollTop;
+
+    const h = sel.scrollHeight / n;
+    if (!isFinite(h) || h < 12 || h > 60) return null;
+
+    const idx = Math.floor(y / h);
+    if (idx < 0 || idx >= n) return null;
+
+    return sel.options[idx];
+  };
+
+  sel.addEventListener('mousemove', (e) => {
+    const opt = optionFromEvent(e);
+    if (opt) set(opt);
+  });
+
+  sel.addEventListener('mouseleave', clear);
+  sel.addEventListener('blur', clear);
+}
+
+/* ---------- Boot ---------- */
+(function boot() {
+  try {
+    buildTree();
+    renderTree();
+
+    const input = document.getElementById('searchText');
+    if (input) {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          highlightText();
+        }
+      });
+      input.addEventListener('input', () => {
+        const v = normalizeSearchTerm(input.value);
+        if (!v) {
+          __treeSearchTerm = '';
+          renderTree();
+        }
+      });
+    }
+
+    window.addEventListener('resize', () => {
+      renderTree();
+    });
+
+    enableMvpdHoverHint();
+    loadRequestorIds();
+
+    updateSelectionPanel(null);
+  } catch (e) {
+    console.error('ESM tetris board boot failed:', e);
+    const meta = document.getElementById('treeMeta');
+    if (meta) meta.textContent = 'render error';
+    const host = document.getElementById('tableHost');
+    if (host) {
+      host.classList.add('table-placeholder');
+      host.textContent = 'App failed to initialize. Open browser console for details.';
+    }
+  }
+})();
+</script>
+</body>
+</html>

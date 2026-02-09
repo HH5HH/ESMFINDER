@@ -71,8 +71,15 @@ th .sort-icon {
   align-items: center;
 }
 
-.esm-close {
+.esm-last-modified {
   margin-left: auto;
+  margin-right: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
+}
+
+.esm-close {
   font-weight: bold;
   font-size: 16px;
   color: #999;
@@ -5880,8 +5887,17 @@ function onRequestorChange() {
 }
 
 /* ---------- TIME ZONE HANDLING ----------
-   ESM date-part rows are sourced in fixed PST (UTC-08:00).
-   We convert PST -> local browser time for display/sort. */
+   Two differing originating timezones are both normalized to the end user's
+   browser timezone (CLIENT_TIMEZONE) for display:
+
+   1. ESM report data: All ESM data is stored and returned in PST. When the
+      user clicks an ESM URL, the resulting report rows (date parts) are in PST.
+      We convert PST -> CLIENT_TIMEZONE for display/sort.
+
+   2. Last-Modified header: The HTTP Last-Modified value is typically in GMT
+      but may use another timezone; we confirm the tail end of the header value
+      (e.g. "GMT", "UTC") and do not assume a fixed timezone. That value is
+      parsed as-is and converted to CLIENT_TIMEZONE for display. */
 const ESM_SOURCE_UTC_OFFSET_MINUTES = -8 * 60; // PST (fixed, no DST)
 const CLIENT_TIMEZONE =
   Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -6099,6 +6115,43 @@ function buildDate(row) {
     minute: '2-digit',
     timeZoneName: 'short'
   });
+}
+
+/** Return the timezone suffix from the end of an HTTP date (e.g. "GMT", "UTC", "+0000").
+ *  Used to confirm server-sent timezone; do not assume Last-Modified is always GMT. */
+function getLastModifiedSourceTimezone(rawHttpDate) {
+  if (rawHttpDate == null || typeof rawHttpDate !== 'string') return '';
+  const tail = rawHttpDate.trim().split(/\s+/).pop();
+  if (!tail) return '';
+  if (/^[A-Z]{2,4}$/i.test(tail)) return tail.toUpperCase();
+  if (/^[+-]\d{4}$/.test(tail)) return tail; // e.g. +0000, -0800
+  return '';
+}
+
+/** Format HTTP Last-Modified to local time. Source timezone is read from the
+ *  tail of the header value (e.g. GMT, UTC) and not assumed; the parsed
+ *  instant is then converted to CLIENT_TIMEZONE for display.
+ *  Returns mm/dd/yyyy hh:mm:ss {detected timezone}. */
+function formatLastModifiedForDisplay(rawHttpDate) {
+  if (rawHttpDate == null || String(rawHttpDate).trim() === '') return rawHttpDate;
+  const d = new Date(rawHttpDate);
+  if (Number.isNaN(d.getTime())) return rawHttpDate;
+  const tz = CLIENT_TIMEZONE;
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+    timeZoneName: 'short'
+  });
+  const parts = formatter.formatToParts(d);
+  const get = (type) => parts.find(p => p.type === type)?.value ?? '';
+  const tzName = get('timeZoneName');
+  return `${get('month')}/${get('day')}/${get('year')} ${get('hour')}:${get('minute')}:${get('second')} ${tzName || tz}`;
 }
 
 function getDefaultSortStack() {
@@ -6321,6 +6374,9 @@ async function runEsm(a) {
 
     state.data = json.report;
 
+    /* Data freshness: Last-Modified when present; absence means real-time (per ESM spec) */
+    const lastModified = r.headers.get('Last-Modified');
+
     /* Detect columns */
     const row0 = state.data[0];
 
@@ -6413,6 +6469,18 @@ async function runEsm(a) {
       downloadCsv(csv, a.href, state.sortStack[0]);
     };
 
+    const lastModifiedLabel = document.createElement('span');
+    lastModifiedLabel.className = 'esm-last-modified';
+    if (lastModified != null) {
+      const sourceTz = getLastModifiedSourceTimezone(lastModified);
+      lastModifiedLabel.textContent = `Last-Modified: ${formatLastModifiedForDisplay(lastModified)}`;
+      lastModifiedLabel.title = sourceTz
+        ? `Server time: ${sourceTz} (converted to your timezone)`
+        : 'Converted to your timezone';
+    } else {
+      lastModifiedLabel.textContent = 'Last-Modified: (real-time)';
+    }
+
     const close = document.createElement('span');
     close.className = 'esm-close';
     close.textContent = ' x ';
@@ -6421,6 +6489,7 @@ async function runEsm(a) {
     };
 
     footer.appendChild(csv);
+    footer.appendChild(lastModifiedLabel);
     footer.appendChild(close);
     ftd.appendChild(footer);
     ftRow.appendChild(ftd);
