@@ -423,6 +423,173 @@
         #loginModal.show {
             display: flex !important;
         }
+
+        .premium-service-section {
+            margin-top: var(--spectrum-global-dimension-size-300);
+            border: 2px solid var(--spectrum-global-color-gray-200);
+            border-radius: var(--spectrum-alias-border-radius-large);
+            background: linear-gradient(180deg, #ffffff 0%, #f6f8fa 100%);
+            padding: var(--spectrum-global-dimension-size-250);
+        }
+
+        .premium-service-section h2 {
+            margin-bottom: var(--spectrum-global-dimension-size-150);
+            border-bottom: 2px solid var(--spectrum-global-color-blue-500);
+            font-size: 22px;
+        }
+
+        .service-degradation h2 {
+            border-bottom-color: #d7373f;
+        }
+
+        .service-esm h2 {
+            border-bottom-color: #0d66d0;
+        }
+
+        .service-rest-v2 h2 {
+            border-bottom-color: #268e6c;
+        }
+
+        .service-summary {
+            margin-bottom: var(--spectrum-global-dimension-size-200);
+            color: var(--spectrum-global-color-gray-700);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .service-actions {
+            margin-bottom: var(--spectrum-global-dimension-size-200);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .service-refresh-btn {
+            padding: var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-200);
+            border: 1px solid var(--spectrum-global-color-blue-400);
+            border-radius: var(--spectrum-alias-border-radius-regular);
+            background: var(--spectrum-global-color-blue-500);
+            color: var(--spectrum-global-color-gray-50);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .service-refresh-btn:hover {
+            background: var(--spectrum-global-color-blue-600);
+        }
+
+        .service-refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-right: 8px;
+            margin-bottom: 4px;
+        }
+
+        .status-applied {
+            background: rgba(45, 157, 120, 0.2);
+            color: #12805c;
+            border: 1px solid rgba(45, 157, 120, 0.4);
+        }
+
+        .status-pending {
+            background: rgba(230, 134, 25, 0.2);
+            color: #da7b11;
+            border: 1px solid rgba(230, 134, 25, 0.4);
+        }
+
+        .status-none {
+            background: rgba(110, 110, 110, 0.16);
+            color: #4a4a4a;
+            border: 1px solid rgba(110, 110, 110, 0.25);
+        }
+
+        .esm-table-wrapper {
+            max-height: 18em;
+            overflow: auto;
+            border: 1px solid #d7d7d7;
+            border-radius: var(--spectrum-alias-border-radius-regular);
+            background: #ffffff;
+        }
+
+        .esm-table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+            font-size: 13px;
+        }
+
+        .esm-table th,
+        .esm-table td {
+            border: 1px solid #ececec;
+            padding: 6px 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: left;
+        }
+
+        .esm-table thead th {
+            position: sticky;
+            top: 0;
+            background: #ecefed;
+            z-index: 1;
+            font-weight: 700;
+        }
+
+        .esm-table tfoot td {
+            position: sticky;
+            bottom: 0;
+            background: #ecefed;
+            z-index: 2;
+            border-top: 1px solid #d7d7d7;
+        }
+
+        .esm-table tbody tr:nth-child(odd) {
+            background: #f9faf9;
+        }
+
+        .esm-table tbody tr:nth-child(even) {
+            background: #f1f3f1;
+        }
+
+        .esm-table th.active-sort {
+            color: var(--spectrum-global-color-blue-600);
+        }
+
+        .esm-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 12px;
+            color: #4a5568;
+            width: 100%;
+        }
+
+        .esm-footer a {
+            color: var(--spectrum-global-color-blue-600);
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .esm-last-modified {
+            color: var(--spectrum-global-color-gray-600);
+        }
+
+        .service-error {
+            color: var(--spectrum-global-color-red-500);
+            font-weight: 600;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -483,6 +650,7 @@
                     </div>
                 </div>
             </div>
+            <div id="premiumServicesContainer"></div>
         </div>
     </div>
 
@@ -496,6 +664,25 @@
         const ADOBE_TVE_DASHBOARD = 'https://experience.adobe.com/#/@adobepass/pass/authentication/release-production';
         const ADOBE_CLIENT_ID = 'AdobePass1';
         const ADOBE_SCOPES = 'openid,AdobeID,read_organizations,additional_info.projectedProductContext,write_pc';
+        const ADOBE_MGMT_BASE = 'https://mgmt.auth.adobe.com';
+        const ADOBE_SP_BASE = 'https://sp.auth.adobe.com';
+        const DCR_CACHE_PREFIX = 'pro.dcr.cache.v1';
+        const PREMIUM_SERVICE_ORDER = ['degradation', 'esm', 'restV2'];
+        const PREMIUM_SERVICE_SCOPE_BY_KEY = {
+            degradation: 'decisions:owner',
+            esm: 'analytics:client',
+            restV2: 'api:client:v2'
+        };
+        const PREMIUM_SERVICE_TITLE_BY_KEY = {
+            degradation: 'Degradation',
+            esm: 'ESM',
+            restV2: 'REST V2'
+        };
+        const ESM_INLINE_RESULT_LIMIT = 50;
+        const ESM_SOURCE_UTC_OFFSET_MINUTES = -8 * 60;
+        const CLIENT_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        let activeMetadataRequestToken = 0;
+        const dcrEnsureTokenPromiseByKey = new Map();
 
         // Check authentication status
         async function checkAuthentication() {
@@ -663,6 +850,7 @@
             if (authenticated) {
                 // Show the working area
                 contentArea.classList.add('authenticated');
+                clearPremiumServicesContainer();
                 
                 authBtn.textContent = '🔄 Refresh Session';
                 updateStatusMessage('Loading programmer data from API...', 'loading');
@@ -672,6 +860,7 @@
             } else {
                 // Hide the working area - only show header console
                 contentArea.classList.remove('authenticated');
+                clearPremiumServicesContainer();
                 
                 authBtn.textContent = 'LOGIN HERE';
                 updateStatusMessage('⚠️ Ahoy there buckaroo, this tool requires authentication. Please login using the button, and close the popup once you\'re done', 'warning');
@@ -1262,6 +1451,7 @@
 
         // Store applications data for current programmer
         let currentApplicationsData = null;
+        let applicationDetailCacheByGuid = {};
 
         // Fetch applications for a programmer
         async function fetchApplicationsForProgrammer(programmerId) {
@@ -1286,11 +1476,17 @@
                     const data = await response.json();
                     // Store applications indexed by GUID for quick lookup
                     currentApplicationsData = {};
+                    applicationDetailCacheByGuid = {};
                     if (Array.isArray(data)) {
                         data.forEach(app => {
                             const guid = app.entityData?.id;
                             if (guid) {
-                                currentApplicationsData[guid] = app.entityData;
+                                const mergedAppData = {
+                                    ...(app.entityData || app),
+                                    __rawEnvelope: app
+                                };
+                                currentApplicationsData[guid] = mergedAppData;
+                                applicationDetailCacheByGuid[guid] = mergedAppData;
                             }
                         });
                     }
@@ -1302,6 +1498,145 @@
             } catch (error) {
                 console.warn('Error fetching applications:', error);
                 return null;
+            }
+        }
+
+        async function fetchApplicationRawByGuid(guid) {
+            if (!guid) {
+                return null;
+            }
+
+            const apiUrl = `${ADOBE_CONSOLE_BASE}/rest/api/applications/${encodeURIComponent(guid)}`;
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                credentials: 'include',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json, text/plain, */*',
+                    'Origin': 'https://cdn.experience.adobe.net',
+                    'Referer': 'https://cdn.experience.adobe.net/',
+                    'ap-request-id': generateRequestId()
+                }
+            });
+
+            if (!response.ok) {
+                const body = await response.text().catch(() => '');
+                throw new Error(`Application fetch failed (${response.status}): ${body || response.statusText}`);
+            }
+
+            const text = await response.text();
+            let parsed = null;
+            try {
+                parsed = text ? JSON.parse(text) : null;
+            } catch (error) {
+                parsed = null;
+            }
+
+            const normalized = parsed?.entityData || parsed;
+            if (normalized && typeof normalized === 'object') {
+                applicationDetailCacheByGuid[guid] = normalized;
+            }
+
+            return {
+                text: String(text || ''),
+                parsed: normalized && typeof normalized === 'object' ? normalized : null
+            };
+        }
+
+        async function fetchApplicationDetailsByGuid(guid) {
+            if (!guid) {
+                return null;
+            }
+            if (applicationDetailCacheByGuid[guid]) {
+                return applicationDetailCacheByGuid[guid];
+            }
+
+            try {
+                const raw = await fetchApplicationRawByGuid(guid);
+                return raw?.parsed || null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async function fetchSoftwareStatementForAppGuid(guid) {
+            if (!guid) {
+                return null;
+            }
+
+            const cachedDetails = applicationDetailCacheByGuid[guid];
+            const cachedStatement = extractSoftwareStatementFromAppData(cachedDetails);
+            if (cachedStatement) {
+                return cachedStatement;
+            }
+
+            let payload = null;
+            try {
+                payload = await fetchApplicationRawByGuid(guid);
+            } catch (error) {
+                return null;
+            }
+
+            if (payload?.parsed) {
+                const fromParsed = extractSoftwareStatementFromAppData(payload.parsed);
+                if (fromParsed) {
+                    return fromParsed;
+                }
+
+                const extracted = extractJwtAndUrls(payload.parsed);
+                if (extracted.jwt) {
+                    return extracted.jwt;
+                }
+
+                for (const candidateUrl of extracted.urls) {
+                    try {
+                        const urlResponse = await fetch(candidateUrl, {
+                            method: 'GET',
+                            credentials: 'include',
+                            mode: 'cors',
+                            headers: {
+                                'Accept': 'text/plain, application/json, */*'
+                            }
+                        });
+                        if (!urlResponse.ok) {
+                            continue;
+                        }
+                        const urlText = await urlResponse.text();
+                        const jwtMatchFromUrl = String(urlText || '').match(/[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/);
+                        if (jwtMatchFromUrl && isProbablyJwt(jwtMatchFromUrl[0])) {
+                            return jwtMatchFromUrl[0];
+                        }
+                    } catch (error) {
+                        // Ignore failed URL dereference attempts
+                    }
+                }
+            }
+
+            const text = String(payload?.text || '').trim();
+            const jwtMatch = text.match(/[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/);
+            if (jwtMatch && isProbablyJwt(jwtMatch[0])) {
+                return jwtMatch[0];
+            }
+
+            return null;
+        }
+
+        async function enrichPremiumAppsWithSoftwareStatements(premiumApps) {
+            const entries = Object.entries(premiumApps || {});
+            for (const [, appInfo] of entries) {
+                if (!appInfo || appInfo.softwareStatement) {
+                    continue;
+                }
+
+                const details = await fetchApplicationDetailsByGuid(appInfo.guid);
+                if (details) {
+                    appInfo.appData = details;
+                    appInfo.softwareStatement = extractSoftwareStatementFromAppData(details);
+                }
+
+                if (!appInfo.softwareStatement) {
+                    appInfo.softwareStatement = await fetchSoftwareStatementForAppGuid(appInfo.guid);
+                }
             }
         }
 
@@ -1367,6 +1702,1243 @@
             return html;
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function normalizeScope(scope) {
+            return String(scope || '').trim().toLowerCase();
+        }
+
+        function isProbablyJwt(value) {
+            if (!value) {
+                return false;
+            }
+            const token = String(value).trim();
+            if (token.length < 60) {
+                return false;
+            }
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                return false;
+            }
+            return /^[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+$/.test(token);
+        }
+
+        function extractJwtAndUrls(value) {
+            const seen = new Set();
+            const jwtCandidates = [];
+            const urlCandidates = [];
+            const stack = [{ node: value, path: '' }];
+
+            while (stack.length > 0) {
+                const { node, path } = stack.pop();
+
+                if (typeof node === 'string') {
+                    const trimmed = node.trim();
+                    if (isProbablyJwt(trimmed)) {
+                        const lowerPath = String(path || '').toLowerCase();
+                        let score = 0;
+                        if (lowerPath.includes('software') && lowerPath.includes('statement')) {
+                            score += 100;
+                        }
+                        if (lowerPath.includes('software_statement') || lowerPath.includes('softwarestatement')) {
+                            score += 100;
+                        }
+                        if (lowerPath.includes('jwt')) {
+                            score += 10;
+                        }
+                        if (trimmed.length > 300) {
+                            score += 5;
+                        }
+                        jwtCandidates.push({ score, value: trimmed, path });
+                    }
+
+                    if (/^https?:\/\//i.test(trimmed) && /software/i.test(trimmed) && /statement/i.test(trimmed)) {
+                        urlCandidates.push(trimmed);
+                    }
+                    continue;
+                }
+
+                if (!node || typeof node !== 'object') {
+                    continue;
+                }
+                if (seen.has(node)) {
+                    continue;
+                }
+                seen.add(node);
+
+                if (Array.isArray(node)) {
+                    node.forEach((item, index) => {
+                        stack.push({ node: item, path: `${path}[${index}]` });
+                    });
+                    continue;
+                }
+
+                Object.entries(node).forEach(([key, nested]) => {
+                    const nestedPath = path ? `${path}.${key}` : key;
+                    stack.push({ node: nested, path: nestedPath });
+                });
+            }
+
+            jwtCandidates.sort((a, b) => b.score - a.score);
+            return {
+                jwt: jwtCandidates[0]?.value || '',
+                jwtPath: jwtCandidates[0]?.path || '',
+                urls: urlCandidates
+            };
+        }
+
+        function getScopesFromApplication(appData) {
+            if (!appData || !Array.isArray(appData.scopes)) {
+                return [];
+            }
+            return appData.scopes
+                .map((scope) => normalizeScope(scope))
+                .filter(Boolean);
+        }
+
+        function extractSoftwareStatementFromAppData(appData) {
+            const directCandidates = [
+                appData?.softwareStatement,
+                appData?.software_statement,
+                appData?.softwarestatement,
+                appData?.software?.statement,
+                appData?.dcr?.softwareStatement,
+                appData?.credentials?.softwareStatement
+            ];
+
+            let fallbackCandidate = null;
+            for (const candidate of directCandidates) {
+                if (typeof candidate === 'string' && candidate.trim() !== '') {
+                    const trimmed = candidate.trim();
+                    if (isProbablyJwt(trimmed)) {
+                        return trimmed;
+                    }
+                    if (!fallbackCandidate) {
+                        fallbackCandidate = trimmed;
+                    }
+                }
+            }
+
+            const extracted = extractJwtAndUrls(appData);
+            return extracted.jwt || fallbackCandidate || null;
+        }
+
+        function findPremiumServiceApplications(applicationsArray, applicationsData) {
+            const services = {
+                degradation: null,
+                esm: null,
+                restV2: null
+            };
+
+            if (!Array.isArray(applicationsArray) || !applicationsData) {
+                return services;
+            }
+
+            for (let index = 0; index < applicationsArray.length; index += 1) {
+                const appRef = applicationsArray[index];
+                const guid = extractApplicationGuid(appRef);
+                if (!guid || !applicationsData[guid]) {
+                    continue;
+                }
+
+                const appData = applicationsData[guid];
+                const scopes = getScopesFromApplication(appData);
+                if (scopes.length === 0) {
+                    continue;
+                }
+
+                const appInfo = {
+                    index,
+                    appRef,
+                    guid,
+                    appData,
+                    appName: appData.name || appData.displayName || guid,
+                    scopes,
+                    softwareStatement: extractSoftwareStatementFromAppData(appData)
+                };
+
+                if (!services.degradation && scopes.includes(PREMIUM_SERVICE_SCOPE_BY_KEY.degradation)) {
+                    services.degradation = appInfo;
+                }
+                if (!services.esm && scopes.includes(PREMIUM_SERVICE_SCOPE_BY_KEY.esm)) {
+                    services.esm = appInfo;
+                }
+                if (!services.restV2 && scopes.includes(PREMIUM_SERVICE_SCOPE_BY_KEY.restV2)) {
+                    services.restV2 = appInfo;
+                }
+
+                if (services.degradation && services.esm && services.restV2) {
+                    break;
+                }
+            }
+
+            return services;
+        }
+
+        function getDcrCacheKey(programmerId, appGuid) {
+            return `${DCR_CACHE_PREFIX}:${programmerId}:${appGuid}`;
+        }
+
+        function loadDcrCache(programmerId, appGuid) {
+            try {
+                const raw = localStorage.getItem(getDcrCacheKey(programmerId, appGuid));
+                if (!raw) {
+                    return null;
+                }
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') {
+                    return null;
+                }
+                const normalized = {
+                    ...parsed,
+                    clientId: parsed.clientId || parsed.client_id || '',
+                    clientSecret: parsed.clientSecret || parsed.client_secret || '',
+                    accessToken: parsed.accessToken || parsed.access_token || '',
+                    tokenExpiresAt: parsed.tokenExpiresAt || parsed.expires_at || parsed.token_expires_at || 0
+                };
+                return normalized;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function saveDcrCache(programmerId, appGuid, value) {
+            try {
+                const normalized = {
+                    ...value,
+                    clientId: value?.clientId || value?.client_id || '',
+                    clientSecret: value?.clientSecret || value?.client_secret || '',
+                    accessToken: value?.accessToken || value?.access_token || '',
+                    tokenExpiresAt: value?.tokenExpiresAt || value?.expires_at || 0
+                };
+                localStorage.setItem(getDcrCacheKey(programmerId, appGuid), JSON.stringify(normalized));
+            } catch (error) {
+                console.warn('Unable to save DCR cache:', error);
+            }
+        }
+
+        function clearDcrCache(programmerId, appGuid) {
+            try {
+                localStorage.removeItem(getDcrCacheKey(programmerId, appGuid));
+            } catch (error) {
+                console.warn('Unable to clear DCR cache:', error);
+            }
+        }
+
+        async function registerClientWithSoftwareStatement(softwareStatement) {
+            const attempts = [];
+
+            attempts.push(async () => {
+                const payload = {
+                    software_statement: softwareStatement,
+                    grant_types: ['client_credentials'],
+                    token_endpoint_auth_method: 'client_secret_post'
+                };
+                const response = await fetch(`${ADOBE_SP_BASE}/o/client/register`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const text = await response.text().catch(() => '');
+                let parsed = null;
+                try {
+                    parsed = text ? JSON.parse(text) : {};
+                } catch (error) {
+                    parsed = {};
+                }
+                if (!response.ok) {
+                    throw new Error(`DCR JSON register failed (${response.status}): ${text || response.statusText}`);
+                }
+                return parsed || {};
+            });
+
+            attempts.push(async () => {
+                const body = new URLSearchParams();
+                body.set('software_statement', softwareStatement);
+                const response = await fetch(`${ADOBE_SP_BASE}/o/client/register`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    },
+                    body: body.toString()
+                });
+                const text = await response.text().catch(() => '');
+                let parsed = null;
+                try {
+                    parsed = text ? JSON.parse(text) : {};
+                } catch (error) {
+                    parsed = {};
+                }
+                if (!response.ok) {
+                    throw new Error(`DCR form register failed (${response.status}): ${text || response.statusText}`);
+                }
+                return parsed || {};
+            });
+
+            let lastError = 'DCR registration failed.';
+            for (const attempt of attempts) {
+                try {
+                    const data = await attempt();
+                    const clientId = data.client_id || data.clientId || data.clientID;
+                    const clientSecret = data.client_secret || data.clientSecret || data.clientSECRET;
+                    if (!clientId || !clientSecret) {
+                        throw new Error('DCR response missing client_id/client_secret.');
+                    }
+                    return {
+                        clientId,
+                        clientSecret
+                    };
+                } catch (error) {
+                    lastError = error?.message || String(error);
+                }
+            }
+            throw new Error(lastError);
+        }
+
+        async function requestClientCredentialsToken(clientId, clientSecret) {
+            const attempts = [];
+
+            attempts.push(async () => {
+                const tokenUrl = `${ADOBE_SP_BASE}/o/client/token?grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`;
+                const response = await fetch(tokenUrl, {
+                    method: 'POST',
+                    mode: 'cors'
+                });
+                const text = await response.text().catch(() => '');
+                let parsed = null;
+                try {
+                    parsed = text ? JSON.parse(text) : {};
+                } catch (error) {
+                    parsed = {};
+                }
+                if (!response.ok) {
+                    throw new Error(`DCR token query failed (${response.status}): ${text || response.statusText}`);
+                }
+                return parsed || {};
+            });
+
+            attempts.push(async () => {
+                const body = new URLSearchParams();
+                body.set('grant_type', 'client_credentials');
+                body.set('client_id', clientId);
+                body.set('client_secret', clientSecret);
+                const response = await fetch(`${ADOBE_SP_BASE}/o/client/token`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    },
+                    body: body.toString()
+                });
+                const text = await response.text().catch(() => '');
+                let parsed = null;
+                try {
+                    parsed = text ? JSON.parse(text) : {};
+                } catch (error) {
+                    parsed = {};
+                }
+                if (!response.ok) {
+                    throw new Error(`DCR token form failed (${response.status}): ${text || response.statusText}`);
+                }
+                return parsed || {};
+            });
+
+            let lastError = 'Token request failed.';
+            for (const attempt of attempts) {
+                try {
+                    const data = await attempt();
+                    const accessToken = data.access_token || data.accessToken;
+                    if (!accessToken) {
+                        throw new Error('Token response missing access_token');
+                    }
+
+                    const expiresInSeconds = Number(data.expires_in || data.expiresIn);
+                    const ttlSeconds = Number.isFinite(expiresInSeconds) && expiresInSeconds > 0
+                        ? expiresInSeconds
+                        : 6 * 60 * 60;
+
+                    return {
+                        accessToken,
+                        tokenExpiresAt: Date.now() + (ttlSeconds * 1000)
+                    };
+                } catch (error) {
+                    lastError = error?.message || String(error);
+                }
+            }
+
+            throw new Error(lastError);
+        }
+
+        async function ensureDcrAccessToken(programmerId, appInfo, forceRefresh = false) {
+            if (!programmerId) {
+                throw new Error('Programmer ID is required');
+            }
+            if (!appInfo || !appInfo.guid) {
+                throw new Error('Registered application details are missing');
+            }
+
+            const promiseKey = getDcrCacheKey(programmerId, appInfo.guid);
+            if (!forceRefresh && dcrEnsureTokenPromiseByKey.has(promiseKey)) {
+                return dcrEnsureTokenPromiseByKey.get(promiseKey);
+            }
+
+            const workPromise = (async () => {
+                let cache = loadDcrCache(programmerId, appInfo.guid) || {};
+
+                if (!cache.clientId || !cache.clientSecret) {
+                    if (!appInfo.softwareStatement) {
+                        const softwareStatement = await fetchSoftwareStatementForAppGuid(appInfo.guid);
+                        if (softwareStatement) {
+                            appInfo.softwareStatement = softwareStatement;
+                        }
+                    }
+                    if (!appInfo.softwareStatement) {
+                        throw new Error(`No software statement found on app ${appInfo.appName}`);
+                    }
+                    const registered = await registerClientWithSoftwareStatement(appInfo.softwareStatement);
+                    cache.clientId = registered.clientId;
+                    cache.clientSecret = registered.clientSecret;
+                }
+
+                const isTokenMissing = !cache.accessToken || !cache.tokenExpiresAt;
+                const isTokenExpired = Date.now() >= (Number(cache.tokenExpiresAt) - (60 * 1000));
+
+                if (forceRefresh || isTokenMissing || isTokenExpired) {
+                    const token = await requestClientCredentialsToken(cache.clientId, cache.clientSecret);
+                    cache.accessToken = token.accessToken;
+                    cache.tokenExpiresAt = token.tokenExpiresAt;
+                }
+
+                saveDcrCache(programmerId, appInfo.guid, cache);
+                return cache.accessToken;
+            })();
+
+            dcrEnsureTokenPromiseByKey.set(promiseKey, workPromise);
+            try {
+                return await workPromise;
+            } finally {
+                if (dcrEnsureTokenPromiseByKey.get(promiseKey) === workPromise) {
+                    dcrEnsureTokenPromiseByKey.delete(promiseKey);
+                }
+            }
+        }
+
+        async function fetchWithPremiumAuth(programmerId, appInfo, url, options = {}, retryStage = 'refresh') {
+            const token = await ensureDcrAccessToken(programmerId, appInfo, false);
+            const headers = new Headers(options.headers || {});
+            headers.set('Authorization', `Bearer ${token}`);
+            if (!headers.has('Accept')) {
+                headers.set('Accept', 'application/json');
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            if (response.status === 401 && retryStage === 'refresh') {
+                await ensureDcrAccessToken(programmerId, appInfo, true);
+                return fetchWithPremiumAuth(programmerId, appInfo, url, options, 'reprovision');
+            }
+
+            if (response.status === 401 && retryStage === 'reprovision') {
+                clearDcrCache(programmerId, appInfo.guid);
+                await ensureDcrAccessToken(programmerId, appInfo, true);
+                return fetchWithPremiumAuth(programmerId, appInfo, url, options, 'none');
+            }
+
+            return response;
+        }
+
+        function toggleCollapsibleSection(headerElement, containerElement) {
+            if (!headerElement || !containerElement) {
+                return;
+            }
+            if (containerElement.classList.contains('collapsed')) {
+                containerElement.classList.remove('collapsed');
+                headerElement.classList.remove('collapsed');
+            } else {
+                containerElement.classList.add('collapsed');
+                headerElement.classList.add('collapsed');
+            }
+        }
+
+        function clearPremiumServicesContainer() {
+            const premiumContainer = document.getElementById('premiumServicesContainer');
+            if (premiumContainer) {
+                premiumContainer.innerHTML = '';
+            }
+        }
+
+        function createPremiumServiceSection(serviceKey, appInfo) {
+            const serviceClassByKey = {
+                degradation: 'service-degradation',
+                esm: 'service-esm',
+                restV2: 'service-rest-v2'
+            };
+
+            const section = document.createElement('div');
+            section.className = `metadata-section premium-service-section ${serviceClassByKey[serviceKey] || ''}`;
+
+            const title = PREMIUM_SERVICE_TITLE_BY_KEY[serviceKey] || serviceKey;
+            const headerTitle = `${title} w/ '${appInfo.appName}'`;
+
+            section.innerHTML = `
+                <h2>
+                    <span>${escapeHtml(headerTitle)}</span>
+                    <span class="collapse-icon">▼</span>
+                </h2>
+                <div class="metadata-container">
+                    <div class="service-actions">
+                        <button class="service-refresh-btn">Refresh ${escapeHtml(title)}</button>
+                    </div>
+                    <div class="service-content">
+                        <div class="loading">Loading ${escapeHtml(title)} data...</div>
+                    </div>
+                </div>
+            `;
+
+            const header = section.querySelector('h2');
+            const container = section.querySelector('.metadata-container');
+            header.addEventListener('click', () => toggleCollapsibleSection(header, container));
+
+            return {
+                section,
+                contentElement: section.querySelector('.service-content'),
+                refreshButton: section.querySelector('.service-refresh-btn')
+            };
+        }
+
+        function statusClassForValue(status) {
+            const normalized = String(status || '').toUpperCase();
+            if (normalized === 'APPLIED') {
+                return 'status-applied';
+            }
+            if (normalized === 'PENDING') {
+                return 'status-pending';
+            }
+            return 'status-none';
+        }
+
+        function collectDegradationStatusEntries(node, path = [], results = []) {
+            if (Array.isArray(node)) {
+                node.forEach((item, index) => collectDegradationStatusEntries(item, path.concat(`[${index}]`), results));
+                return results;
+            }
+
+            if (!node || typeof node !== 'object') {
+                return results;
+            }
+
+            const hasStatus = Object.prototype.hasOwnProperty.call(node, 'degradation-measure-status');
+            const hasEnable = Object.prototype.hasOwnProperty.call(node, 'degradation-measure-enable');
+
+            if (hasStatus || hasEnable) {
+                results.push({
+                    path: path.join(' > '),
+                    status: node['degradation-measure-status'],
+                    enabled: node['degradation-measure-enable'],
+                    ttl: node.ttl,
+                    activationTime: node['activation-time'],
+                    errMsg: node['err-msg'],
+                    id: node.id,
+                    programmer: node.programmer,
+                    mvpd: node.mvpd,
+                    channel: node.channel
+                });
+            }
+
+            Object.keys(node).forEach((key) => {
+                collectDegradationStatusEntries(node[key], path.concat(key), results);
+            });
+
+            return results;
+        }
+
+        function formatDegradationStatusEntries(entries) {
+            if (!entries.length) {
+                return '<span class="null-value">No degradation status entries returned.</span>';
+            }
+
+            let html = '<div>';
+            entries.forEach((entry, index) => {
+                const statusValue = String(entry.status || 'UNKNOWN').toUpperCase();
+                const statusClass = statusClassForValue(statusValue);
+                html += `<div class="array-item"><strong>[${index}]</strong> `;
+                html += `<span class="status-pill ${statusClass}">${escapeHtml(statusValue)}</span>`;
+                if (entry.enabled !== undefined) {
+                    html += ` enabled=<strong>${escapeHtml(String(entry.enabled))}</strong>`;
+                }
+                if (entry.ttl !== undefined && entry.ttl !== null && entry.ttl !== '') {
+                    html += ` ttl=<strong>${escapeHtml(String(entry.ttl))}</strong>`;
+                }
+                if (entry.id) {
+                    html += ` id=<strong>${escapeHtml(String(entry.id))}</strong>`;
+                }
+                if (entry.channel) {
+                    html += ` channel=<strong>${escapeHtml(String(entry.channel))}</strong>`;
+                }
+                if (entry.mvpd) {
+                    html += ` mvpd=<strong>${escapeHtml(String(entry.mvpd))}</strong>`;
+                }
+                if (entry.programmer) {
+                    html += ` programmer=<strong>${escapeHtml(String(entry.programmer))}</strong>`;
+                }
+                if (entry.activationTime) {
+                    html += `<div class="object-item"><strong>activation-time:</strong> ${escapeHtml(String(entry.activationTime))}</div>`;
+                }
+                if (entry.errMsg) {
+                    html += `<div class="object-item"><strong>err-msg:</strong> ${escapeHtml(String(entry.errMsg))}</div>`;
+                }
+                if (entry.path) {
+                    html += `<div class="object-item"><strong>path:</strong> ${escapeHtml(entry.path)}</div>`;
+                }
+                html += '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        async function fetchDegradationStatusCall(programmerId, appInfo, callKey, selectedMvpd) {
+            const params = new URLSearchParams();
+            params.set('programmer', programmerId);
+            if (selectedMvpd) {
+                params.set('mvpd', selectedMvpd);
+            }
+            params.set('format', 'json');
+
+            const scopedUrl = `${ADOBE_MGMT_BASE}/control/v3/degradation/${encodeURIComponent(programmerId)}/${callKey}?${params.toString()}`;
+            let response = await fetchWithPremiumAuth(programmerId, appInfo, scopedUrl, {
+                method: 'GET'
+            });
+            let text = await response.text();
+
+            if (!response.ok && response.status === 404) {
+                const legacyUrl = `${ADOBE_MGMT_BASE}/control/v3/degradation/${callKey}?${params.toString()}`;
+                response = await fetchWithPremiumAuth(programmerId, appInfo, legacyUrl, {
+                    method: 'GET'
+                });
+                text = await response.text();
+            }
+
+            if (!response.ok) {
+                return {
+                    ok: false,
+                    error: `HTTP ${response.status} ${response.statusText}`,
+                    body: text
+                };
+            }
+
+            let data = null;
+            try {
+                data = text ? JSON.parse(text) : null;
+            } catch (error) {
+                data = null;
+            }
+
+            return {
+                ok: true,
+                data,
+                rawText: text
+            };
+        }
+
+        async function loadDegradationService(programmerId, appInfo, contentElement, refreshButton, requestToken) {
+            if (!contentElement) {
+                return;
+            }
+            if (refreshButton) {
+                refreshButton.disabled = true;
+            }
+
+            const selectedMvpd = document.getElementById('mvpdSelect')?.value?.trim();
+            const calls = [
+                { key: 'authnAll', label: 'Authenticate All - Status' },
+                { key: 'authzAll', label: 'Authorize All - Status' },
+                { key: 'authzNone', label: 'Authorize None - Status' }
+            ];
+
+            contentElement.innerHTML = '<div class="loading">Loading degradation status calls...</div>';
+
+            try {
+                const responses = await Promise.all(calls.map(async (callInfo) => {
+                    const result = await fetchDegradationStatusCall(programmerId, appInfo, callInfo.key, selectedMvpd);
+                    return {
+                        ...callInfo,
+                        ...result
+                    };
+                }));
+
+                if (requestToken !== activeMetadataRequestToken) {
+                    return;
+                }
+
+                let html = '';
+                responses.forEach((result) => {
+                    if (!result.ok) {
+                        html += `
+                            <div class="metadata-item">
+                                <div class="metadata-key">${escapeHtml(result.label)}</div>
+                                <div class="metadata-value service-error">${escapeHtml(result.error)}
+${escapeHtml(result.body || '')}</div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const entries = collectDegradationStatusEntries(result.data || {});
+                    const formattedValue = entries.length > 0
+                        ? formatDegradationStatusEntries(entries)
+                        : formatValue(result.data || result.rawText || 'No data');
+
+                    html += `
+                        <div class="metadata-item">
+                            <div class="metadata-key">${escapeHtml(result.label)}</div>
+                            <div class="metadata-value">${formattedValue}</div>
+                        </div>
+                    `;
+                });
+
+                contentElement.innerHTML = html;
+            } catch (error) {
+                if (requestToken !== activeMetadataRequestToken) {
+                    return;
+                }
+                contentElement.innerHTML = `<div class="service-error">${escapeHtml(error.message)}</div>`;
+            } finally {
+                if (refreshButton) {
+                    refreshButton.disabled = false;
+                }
+            }
+        }
+
+        const ESM_METRIC_COLUMNS = new Set([
+            'authn-attempts', 'authn-successful', 'authn-pending', 'authn-failed',
+            'clientless-tokens', 'clientless-failures',
+            'authz-attempts', 'authz-successful', 'authz-failed', 'authz-rejected',
+            'authz-latency', 'media-tokens',
+            'unique-accounts', 'unique-sessions', 'count'
+        ]);
+
+        const ESM_DATE_PARTS = ['year', 'month', 'day', 'hour', 'minute'];
+
+        function isoTimestamp(date) {
+            return new Date(date).toISOString().replace(/\.\d{3}Z$/, 'Z');
+        }
+
+        function esmPartsToUtcMs(row) {
+            const year = Number(row?.year ?? 1970);
+            const month = Number(row?.month ?? 1);
+            const day = Number(row?.day ?? 1);
+            const hour = Number(row?.hour ?? 0);
+            const minute = Number(row?.minute ?? 0);
+
+            return Date.UTC(
+                Number.isFinite(year) ? year : 1970,
+                Number.isFinite(month) ? month - 1 : 0,
+                Number.isFinite(day) ? day : 1,
+                Number.isFinite(hour) ? hour : 0,
+                Number.isFinite(minute) ? minute : 0
+            ) - (ESM_SOURCE_UTC_OFFSET_MINUTES * 60 * 1000);
+        }
+
+        function buildEsmDateLabel(row) {
+            const date = new Date(esmPartsToUtcMs(row));
+            return date.toLocaleString('en-US', {
+                timeZone: CLIENT_TIMEZONE,
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+        }
+
+        function getLastModifiedSourceTimezone(rawHttpDate) {
+            if (rawHttpDate == null || typeof rawHttpDate !== 'string') {
+                return '';
+            }
+            const tail = rawHttpDate.trim().split(/\s+/).pop();
+            if (!tail) {
+                return '';
+            }
+            if (/^[A-Z]{2,4}$/i.test(tail)) {
+                return tail.toUpperCase();
+            }
+            if (/^[+-]\d{4}$/.test(tail)) {
+                return tail;
+            }
+            return '';
+        }
+
+        function formatLastModifiedForDisplay(rawHttpDate) {
+            if (rawHttpDate == null || String(rawHttpDate).trim() === '') {
+                return rawHttpDate;
+            }
+            const date = new Date(rawHttpDate);
+            if (Number.isNaN(date.getTime())) {
+                return rawHttpDate;
+            }
+
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: CLIENT_TIMEZONE,
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hourCycle: 'h23',
+                timeZoneName: 'short'
+            });
+
+            const parts = formatter.formatToParts(date);
+            const getPart = (type) => parts.find((part) => part.type === type)?.value ?? '';
+            const tzName = getPart('timeZoneName');
+            return `${getPart('month')}/${getPart('day')}/${getPart('year')} ${getPart('hour')}:${getPart('minute')}:${getPart('second')} ${tzName || CLIENT_TIMEZONE}`;
+        }
+
+        function esmToNumber(value) {
+            const number = Number(value);
+            return Number.isFinite(number) ? number : null;
+        }
+
+        function esmSafeRate(numerator, denominator) {
+            const n = esmToNumber(numerator);
+            const d = esmToNumber(denominator);
+            if (n == null || d == null || d <= 0) {
+                return null;
+            }
+            const rate = n / d;
+            return Number.isFinite(rate) ? rate : null;
+        }
+
+        function esmFormatPercent(rate) {
+            if (rate == null) {
+                return '—';
+            }
+            return `${(rate * 100).toFixed(2)}%`;
+        }
+
+        function createEsmCell(value) {
+            const cell = document.createElement('td');
+            const text = value == null ? '' : String(value);
+            cell.textContent = text;
+            cell.title = text;
+            return cell;
+        }
+
+        function sanitizeFileSegment(value, fallback = 'na') {
+            const normalized = String(value || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9._-]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+            return normalized || fallback;
+        }
+
+        function buildEsmCsvFileName(programmerId) {
+            const requestorId = document.getElementById('contentProviderSelect')?.value?.trim();
+            const mvpdId = document.getElementById('mvpdSelect')?.value?.trim();
+            const now = new Date();
+            const timestamp = [
+                now.getFullYear().toString(),
+                String(now.getMonth() + 1).padStart(2, '0'),
+                String(now.getDate()).padStart(2, '0'),
+                String(now.getHours()).padStart(2, '0'),
+                String(now.getMinutes()).padStart(2, '0'),
+                String(now.getSeconds()).padStart(2, '0')
+            ].join('');
+
+            return `esm_${sanitizeFileSegment(programmerId, 'programmer')}_${sanitizeFileSegment(requestorId, 'all-requestors')}_${sanitizeFileSegment(mvpdId, 'all-mvpds')}_${timestamp}.csv`;
+        }
+
+        function getDefaultEsmSortStack() {
+            return [{ col: 'DATE', dir: 'DESC' }];
+        }
+
+        function getEsmCellValue(row, columnKey, context) {
+            if (columnKey === 'DATE') {
+                return esmPartsToUtcMs(row);
+            }
+
+            if (context.hasAuthN && columnKey === 'AuthN Success') {
+                const rate = esmSafeRate(row['authn-successful'], row['authn-attempts']);
+                return rate == null ? -1 : rate;
+            }
+
+            if (context.hasAuthZ && columnKey === 'AuthZ Success') {
+                const rate = esmSafeRate(row['authz-successful'], row['authz-attempts']);
+                return rate == null ? -1 : rate;
+            }
+
+            if (columnKey === 'COUNT') {
+                const value = esmToNumber(row.count);
+                return value == null ? 0 : value;
+            }
+
+            const rawValue = row[columnKey];
+            if (rawValue == null) {
+                return '';
+            }
+
+            if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+                return rawValue;
+            }
+
+            const converted = esmToNumber(rawValue);
+            if (converted != null) {
+                return converted;
+            }
+
+            return String(rawValue).toLowerCase();
+        }
+
+        function sortEsmRows(rows, sortStack, context) {
+            const stack = Array.isArray(sortStack) && sortStack.length > 0
+                ? sortStack
+                : getDefaultEsmSortStack();
+
+            return [...rows].sort((left, right) => {
+                for (const sortRule of stack) {
+                    const factor = sortRule.dir === 'ASC' ? 1 : -1;
+                    const leftValue = getEsmCellValue(left, sortRule.col, context);
+                    const rightValue = getEsmCellValue(right, sortRule.col, context);
+
+                    if (leftValue < rightValue) {
+                        return -1 * factor;
+                    }
+                    if (leftValue > rightValue) {
+                        return 1 * factor;
+                    }
+                }
+
+                return getEsmCellValue(right, 'DATE', context) - getEsmCellValue(left, 'DATE', context);
+            });
+        }
+
+        function renderEsmTableBody(state) {
+            const { tbody, data, hasAuthN, hasAuthZ, hasCount, displayColumns } = state;
+            tbody.innerHTML = '';
+
+            data.forEach((row) => {
+                const tableRow = document.createElement('tr');
+                tableRow.appendChild(createEsmCell(buildEsmDateLabel(row)));
+
+                if (hasAuthN) {
+                    tableRow.appendChild(createEsmCell(esmFormatPercent(esmSafeRate(row['authn-successful'], row['authn-attempts']))));
+                }
+                if (hasAuthZ) {
+                    tableRow.appendChild(createEsmCell(esmFormatPercent(esmSafeRate(row['authz-successful'], row['authz-attempts']))));
+                }
+                if (!hasAuthN && !hasAuthZ && hasCount) {
+                    tableRow.appendChild(createEsmCell(row.count));
+                }
+
+                displayColumns.forEach((column) => {
+                    tableRow.appendChild(createEsmCell(row[column] ?? ''));
+                });
+
+                tbody.appendChild(tableRow);
+            });
+        }
+
+        function refreshEsmHeaderStates(state) {
+            if (!state || !state.thead) {
+                return;
+            }
+            state.thead.querySelectorAll('th').forEach((headerCell) => {
+                if (typeof headerCell._updateState === 'function') {
+                    headerCell._updateState();
+                }
+            });
+        }
+
+        function downloadEsmCsv(rows, sortRule, context, fileName) {
+            if (!Array.isArray(rows) || rows.length === 0) {
+                return;
+            }
+
+            const sortedRows = sortEsmRows(rows, sortRule ? [sortRule] : getDefaultEsmSortStack(), context);
+            const headers = Object.keys(sortedRows[0]);
+            const lines = [
+                headers.join(','),
+                ...sortedRows.map((row) => headers
+                    .map((header) => `"${String(row[header] ?? '').replace(/"/g, '""')}"`)
+                    .join(','))
+            ];
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const blobUrl = URL.createObjectURL(blob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = blobUrl;
+            downloadLink.download = fileName || 'esm-report.csv';
+            downloadLink.click();
+            URL.revokeObjectURL(blobUrl);
+        }
+
+        function renderEsmReportTable(contentElement, reportRows, lastModified, programmerId) {
+            if (!Array.isArray(reportRows) || reportRows.length === 0) {
+                contentElement.innerHTML = '<div class="metadata-item"><div class="metadata-key">ESM</div><div class="metadata-value"><span class="null-value">No rows returned.</span></div></div>';
+                return;
+            }
+
+            contentElement.innerHTML = `
+                <div class="esm-table-wrapper">
+                    <table class="esm-table">
+                        <thead><tr></tr></thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr>
+                                <td class="esm-footer-cell">
+                                    <div class="esm-footer">
+                                        <a href="#" class="esm-csv-link">CSV</a>
+                                        <span class="esm-last-modified"></span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+
+            const table = contentElement.querySelector('.esm-table');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+
+            const firstRow = reportRows[0];
+            const hasAuthN = firstRow['authn-attempts'] != null && firstRow['authn-successful'] != null;
+            const hasAuthZ = firstRow['authz-attempts'] != null && firstRow['authz-successful'] != null;
+            const hasCount = firstRow.count != null;
+            const displayColumns = Object.keys(firstRow).filter((column) =>
+                !ESM_METRIC_COLUMNS.has(column) &&
+                !ESM_DATE_PARTS.includes(column) &&
+                column !== 'media-company'
+            );
+
+            const headers = ['DATE'];
+            if (hasAuthN) {
+                headers.push('AuthN Success');
+            }
+            if (hasAuthZ) {
+                headers.push('AuthZ Success');
+            }
+            if (!hasAuthN && !hasAuthZ && hasCount) {
+                headers.push('COUNT');
+            }
+            headers.push(...displayColumns);
+
+            const context = { hasAuthN, hasAuthZ };
+            const state = {
+                thead,
+                tbody,
+                data: reportRows,
+                sortStack: getDefaultEsmSortStack(),
+                hasAuthN,
+                hasAuthZ,
+                hasCount,
+                displayColumns,
+                context
+            };
+
+            const headerRow = thead.querySelector('tr');
+            headers.forEach((header) => {
+                const th = document.createElement('th');
+                th.style.cursor = 'pointer';
+                th.textContent = header;
+
+                const icon = document.createElement('span');
+                icon.className = 'sort-icon';
+                icon.style.marginLeft = '6px';
+                th.appendChild(icon);
+
+                th._updateState = () => {
+                    const isActive = state.sortStack[0]?.col === header;
+                    th.classList.toggle('active-sort', isActive);
+                    icon.textContent = isActive ? (state.sortStack[0].dir === 'ASC' ? '▲' : '▼') : '';
+                };
+
+                th.addEventListener('click', (event) => {
+                    const existingRule = state.sortStack.find((rule) => rule.col === header);
+
+                    if (event.shiftKey && existingRule) {
+                        existingRule.dir = existingRule.dir === 'DESC' ? 'ASC' : 'DESC';
+                    } else if (event.shiftKey) {
+                        state.sortStack.push({ col: header, dir: 'DESC' });
+                    } else {
+                        state.sortStack = [{
+                            col: header,
+                            dir: existingRule ? (existingRule.dir === 'DESC' ? 'ASC' : 'DESC') : 'DESC'
+                        }];
+                    }
+
+                    state.data = sortEsmRows(state.data, state.sortStack, context);
+                    renderEsmTableBody(state);
+                    refreshEsmHeaderStates(state);
+                });
+
+                headerRow.appendChild(th);
+            });
+
+            const footerCell = contentElement.querySelector('.esm-footer-cell');
+            if (footerCell) {
+                footerCell.colSpan = Math.max(1, headers.length);
+            }
+
+            state.data = sortEsmRows(state.data, state.sortStack, context);
+            renderEsmTableBody(state);
+            refreshEsmHeaderStates(state);
+
+            const csvLink = contentElement.querySelector('.esm-csv-link');
+            csvLink.addEventListener('click', (event) => {
+                event.preventDefault();
+                const csvFileName = buildEsmCsvFileName(programmerId);
+                downloadEsmCsv(reportRows, state.sortStack[0], context, csvFileName);
+            });
+
+            const lastModifiedLabel = contentElement.querySelector('.esm-last-modified');
+            if (lastModified) {
+                const sourceTz = getLastModifiedSourceTimezone(lastModified);
+                lastModifiedLabel.textContent = `Last-Modified: ${formatLastModifiedForDisplay(lastModified)}`;
+                lastModifiedLabel.title = sourceTz
+                    ? `Server time: ${sourceTz} (converted to your timezone)`
+                    : 'Converted to your timezone';
+            } else {
+                lastModifiedLabel.textContent = 'Last-Modified: (real-time)';
+            }
+        }
+
+        function buildEsmUrl() {
+            const now = new Date();
+            const start = new Date(now.getTime() - (60 * 60 * 1000));
+
+            const params = new URLSearchParams();
+            params.set('start', isoTimestamp(start));
+            params.set('end', isoTimestamp(now));
+            params.set('format', 'json');
+            params.set('limit', String(ESM_INLINE_RESULT_LIMIT));
+
+            const selectedRequestor = document.getElementById('contentProviderSelect')?.value?.trim();
+            if (selectedRequestor) {
+                params.append('requestor-id', selectedRequestor);
+            }
+
+            const selectedMvpd = document.getElementById('mvpdSelect')?.value?.trim();
+            if (selectedMvpd) {
+                params.append('mvpd', selectedMvpd);
+            }
+
+            return `${ADOBE_MGMT_BASE}/esm/v3/media-company/year/month/day/hour/minute?${params.toString()}`;
+        }
+
+        async function loadEsmService(programmerId, appInfo, contentElement, refreshButton, requestToken) {
+            if (!contentElement) {
+                return;
+            }
+            if (refreshButton) {
+                refreshButton.disabled = true;
+            }
+            contentElement.innerHTML = '<div class="loading">Loading ESM data...</div>';
+
+            try {
+                const url = buildEsmUrl();
+                const response = await fetchWithPremiumAuth(programmerId, appInfo, url, { method: 'GET' });
+                const lastModified = response.headers.get('Last-Modified');
+                const bodyText = await response.text();
+
+                if (requestToken !== activeMetadataRequestToken) {
+                    return;
+                }
+
+                if (!response.ok) {
+                    contentElement.innerHTML = `<div class="service-error">HTTP ${response.status} ${escapeHtml(response.statusText)}
+${escapeHtml(bodyText || '')}</div>`;
+                    return;
+                }
+
+                let jsonData = null;
+                try {
+                    jsonData = bodyText ? JSON.parse(bodyText) : null;
+                } catch (error) {
+                    jsonData = null;
+                }
+
+                const reportRows = Array.isArray(jsonData?.report) ? jsonData.report : [];
+                renderEsmReportTable(contentElement, reportRows, lastModified, programmerId);
+            } catch (error) {
+                if (requestToken !== activeMetadataRequestToken) {
+                    return;
+                }
+                contentElement.innerHTML = `<div class="service-error">${escapeHtml(error.message)}</div>`;
+            } finally {
+                if (refreshButton) {
+                    refreshButton.disabled = false;
+                }
+            }
+        }
+
+        function renderRestV2ComingSoon(contentElement, appInfo) {
+            contentElement.innerHTML = `
+                <div class="metadata-item">
+                    <div class="metadata-key">REST V2</div>
+                    <div class="metadata-value">Coming Soon. Using ${escapeHtml(appInfo.appName)} with REST V2 API.</div>
+                </div>
+            `;
+        }
+
+        function renderPremiumServiceSections(programmerId, premiumApps, requestToken) {
+            const premiumContainer = document.getElementById('premiumServicesContainer');
+            if (!premiumContainer) {
+                return;
+            }
+            premiumContainer.innerHTML = '';
+
+            const availableKeys = PREMIUM_SERVICE_ORDER.filter((serviceKey) => Boolean(premiumApps[serviceKey]));
+            if (availableKeys.length === 0) {
+                return;
+            }
+
+            availableKeys.forEach((serviceKey) => {
+                const appInfo = premiumApps[serviceKey];
+                const section = createPremiumServiceSection(serviceKey, appInfo);
+                premiumContainer.appendChild(section.section);
+
+                if (serviceKey === 'degradation') {
+                    const refresh = () => loadDegradationService(programmerId, appInfo, section.contentElement, section.refreshButton, requestToken);
+                    section.refreshButton.addEventListener('click', refresh);
+                    refresh();
+                    return;
+                }
+
+                if (serviceKey === 'esm') {
+                    const refresh = () => loadEsmService(programmerId, appInfo, section.contentElement, section.refreshButton, requestToken);
+                    section.refreshButton.addEventListener('click', refresh);
+                    refresh();
+                    return;
+                }
+
+                if (serviceKey === 'restV2') {
+                    section.refreshButton.style.display = 'none';
+                    renderRestV2ComingSoon(section.contentElement, appInfo);
+                }
+            });
+        }
+
         // Check if a value is empty (null, undefined, empty object, empty array, empty string)
         function isEmptyValue(value) {
             if (value === null || value === undefined) {
@@ -1386,6 +2958,7 @@
 
         // Display metadata for selected programmer
         async function displayMetadata(programmerIndex) {
+            const requestToken = ++activeMetadataRequestToken;
             const container = document.getElementById('metadataContainer');
             const metadataHeader = document.getElementById('metadataHeader');
             const headerSpan = metadataHeader.querySelector('span');
@@ -1396,6 +2969,7 @@
             if (programmerIndex === '' || !programmersData) {
                 // Reset header to default
                 headerSpan.textContent = 'Metadata';
+                clearPremiumServicesContainer();
                 container.innerHTML = `
                     <div class="empty-state">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1422,6 +2996,10 @@
             let applicationsData = null;
             if (programmerId && isAuthenticated) {
                 applicationsData = await fetchApplicationsForProgrammer(programmerId);
+            }
+
+            if (requestToken !== activeMetadataRequestToken) {
+                return;
             }
             
             let html = '';
@@ -1454,7 +3032,18 @@
                 `;
             });
 
-            container.innerHTML = html;
+            container.innerHTML = html || '<div class="metadata-item"><div class="metadata-key">Info</div><div class="metadata-value"><span class="null-value">No non-empty metadata fields were found for this programmer.</span></div></div>';
+
+            if (requestToken !== activeMetadataRequestToken) {
+                return;
+            }
+
+            const premiumApps = findPremiumServiceApplications(entityData.applications || [], applicationsData || {});
+            await enrichPremiumAppsWithSoftwareStatements(premiumApps);
+            if (requestToken !== activeMetadataRequestToken) {
+                return;
+            }
+            renderPremiumServiceSections(programmerId, premiumApps, requestToken);
         }
 
         // Event listeners
