@@ -5505,9 +5505,11 @@ async function refreshToken() {
 }
 
 /* ---------- ESM LIMIT GUARD ----------
-   QE note: some ESM datasets (notably MIN zoom) can exceed the default server limit.
-   We append `limit=10000` to *ESM* calls only (mgmt.auth.adobe.com/esm/*). */
-const ESM_RESULT_LIMIT = 10000;
+   Inline table loads are capped to keep page memory/weight down.
+   CSV exports stay high to preserve full raw downloads.
+   Limit is only appended for ESM endpoints (mgmt.auth.adobe.com/esm/*). */
+const ESM_INLINE_RESULT_LIMIT = 50;
+const ESM_CSV_RESULT_LIMIT = 10000;
 
 function __isEsmUrl(url) {
   return typeof url === 'string' && url.includes('mgmt.auth.adobe.com/esm/');
@@ -5524,7 +5526,7 @@ function __appendQueryParam(url, paramKV) {
   return base + '&' + paramKV + hash;
 }
 
-function ensureEsmLimit(url, limit = ESM_RESULT_LIMIT) {
+function ensureEsmLimit(url, limit = ESM_CSV_RESULT_LIMIT) {
   if (!__isEsmUrl(url)) return url;
 
   const lim = encodeURIComponent(String(limit));
@@ -5538,11 +5540,13 @@ function ensureEsmLimit(url, limit = ESM_RESULT_LIMIT) {
 }
 
 
-async function fetchWithRefresh(url) {
+async function fetchWithRefresh(url, options = {}) {
   __netStart();
   try {
+    const { esmLimit = ESM_CSV_RESULT_LIMIT } = options;
+
     // Only ESM endpoints support the `limit` query param.
-    const finalUrl = ensureEsmLimit(url);
+    const finalUrl = ensureEsmLimit(url, esmLimit);
 
     let r = await fetch(finalUrl, { headers: { Authorization: 'Bearer ' + getToken() } });
     if (r.status === 401) {
@@ -5875,6 +5879,35 @@ function onRequestorChange() {
   __scheduleApplyRequestors();
 }
 
+/* ---------- TIME ZONE HANDLING ----------
+   ESM date-part rows are sourced in fixed PST (UTC-08:00).
+   We convert PST -> local browser time for display/sort. */
+const ESM_SOURCE_UTC_OFFSET_MINUTES = -8 * 60; // PST (fixed, no DST)
+const CLIENT_TIMEZONE =
+  Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+function __shiftInstantToPstCalendar(d) {
+  // Shift absolute instant into a "PST calendar" frame, then read via UTC getters.
+  return new Date(d.getTime() + ESM_SOURCE_UTC_OFFSET_MINUTES * 60 * 1000);
+}
+
+function __esmPartsToUtcMs(row) {
+  const year = Number(row?.year ?? 1970);
+  const month = Number(row?.month ?? 1);
+  const day = Number(row?.day ?? 1);
+  const hour = Number(row?.hour ?? 0);
+  const minute = Number(row?.minute ?? 0);
+
+  // Convert "PST wall clock" parts into true UTC epoch.
+  return Date.UTC(
+    Number.isFinite(year) ? year : 1970,
+    Number.isFinite(month) ? month - 1 : 0,
+    Number.isFinite(day) ? day : 1,
+    Number.isFinite(hour) ? hour : 0,
+    Number.isFinite(minute) ? minute : 0
+  ) - ESM_SOURCE_UTC_OFFSET_MINUTES * 60 * 1000;
+}
+
 /* ---------- TIME WINDOW LOGIC ---------- */
 function iso(d) {
   return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
@@ -5882,24 +5915,33 @@ function iso(d) {
 
 function computeTimeWindow(anchor) {
   const now = new Date();
-  const y = now.getFullYear();
+  const nowPst = __shiftInstantToPstCalendar(now);
+  const yPst = nowPst.getUTCFullYear();
 
   if (anchor.classList.contains('zmYR')) {
-    return { start: String(y - 1), end: iso(now) };
+    return { start: String(yPst - 1), end: iso(now) };
   }
 
   if (anchor.classList.contains('zmMO')) {
-    const prev = new Date(y, now.getMonth() - 1, 1);
+    const prev = new Date(Date.UTC(
+      nowPst.getUTCFullYear(),
+      nowPst.getUTCMonth() - 1,
+      1
+    ));
     return {
-      start: `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`,
+      start: `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}`,
       end: iso(now)
     };
   }
 
   if (anchor.classList.contains('zmDAY')) {
-    const prev = new Date(y, now.getMonth(), now.getDate() - 1);
+    const prev = new Date(Date.UTC(
+      nowPst.getUTCFullYear(),
+      nowPst.getUTCMonth(),
+      nowPst.getUTCDate() - 1
+    ));
     return {
-      start: `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-${String(prev.getDate()).padStart(2, '0')}`,
+      start: `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}-${String(prev.getUTCDate()).padStart(2, '0')}`,
       end: iso(now)
     };
   }
@@ -6046,18 +6088,16 @@ function __fmtPct(rate) {
 
 
 function buildDate(row) {
-  return new Date(
-    row.year ?? 1970,
-    (row.month ?? 1) - 1,
-    row.day ?? 1,
-    row.hour ?? 0,
-    row.minute ?? 0
-  ).toLocaleString('en-US', {
+  const ms = __esmPartsToUtcMs(row);
+  const d = new Date(ms);
+  return d.toLocaleString('en-US', {
+    timeZone: CLIENT_TIMEZONE,
     month: '2-digit',
     day: '2-digit',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZoneName: 'short'
   });
 }
 
@@ -6073,13 +6113,7 @@ function persistSortStack(stack) {
 
 function getCellValue(row, colKey, ctx) {
   if (colKey === 'DATE') {
-    return new Date(
-      row.year ?? 1970,
-      (row.month ?? 1) - 1,
-      row.day ?? 1,
-      row.hour ?? 0,
-      row.minute ?? 0
-    ).getTime();
+    return __esmPartsToUtcMs(row);
   }
 
   if (ctx.authN && colKey === 'AuthN Success') {
@@ -6172,7 +6206,7 @@ async function downloadCsv(link, baseHref, sortState) {
     appendTimeParams(baseHref, anchor) + '&format=json'
   );
 
-  const r = await fetchWithRefresh(csvUrl);
+  const r = await fetchWithRefresh(csvUrl, { esmLimit: ESM_CSV_RESULT_LIMIT });
   if (!r.ok) return;
 
   const j = await r.json();
@@ -6259,7 +6293,7 @@ async function runEsm(a) {
 
   try {
     /* Fetch data */
-    const r = await fetchWithRefresh(jsonUrl);
+    const r = await fetchWithRefresh(jsonUrl, { esmLimit: ESM_INLINE_RESULT_LIMIT });
 
     // If server returns a string error (or any non-OK), show it in the same "No data" box.
     if (!r.ok) {
@@ -6322,7 +6356,9 @@ async function runEsm(a) {
     headers.forEach(h => {
       const th = document.createElement('th');
       th.textContent = h;
-      th.title = h;
+      th.title = (h === 'DATE')
+        ? `DATE (${CLIENT_TIMEZONE}, converted from PST)`
+        : h;
       th.style.cursor = 'pointer';
 
       const icon = document.createElement('span');
